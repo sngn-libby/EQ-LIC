@@ -14,9 +14,9 @@ def process_set(data_root_dir, index_list):
 
 
 # change these three path
-data_root_dir = '/home/felix/disk2/data/flicker/flicker_2W_images'
-train_root_dir = '/home/felix/disk2/data/flicker/train'
-test_root_dir = '/home/felix/disk2/data/flicker/test'
+data_root_dir = 'C:/flicker_2W_images'
+train_root_dir = 'C:/flicker/train'
+test_root_dir = 'C:/flicker/test'
 if not os.path.exists(train_root_dir):
     os.makedirs(train_root_dir)
 if not os.path.exists(test_root_dir):
@@ -40,7 +40,7 @@ imgs = sorted(os.listdir(data_root_dir))
 alls = [imgs[i] for i in index_list]
 all_length = len(alls)
 
-train_ratio = 0.99
+train_ratio = 0.8
 train_length = round(len(alls) * train_ratio)
 val_length = all_length - train_length
 
