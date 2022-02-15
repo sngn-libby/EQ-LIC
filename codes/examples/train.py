@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+
 import argparse
 import math
 import random
@@ -32,23 +33,26 @@ from compressai.zoo import models
 from pytorch_msssim import ms_ssim
 from typing import Tuple, Union
 import numpy as np
-import PIL
 import PIL.Image as Image
 from torchvision.transforms import ToPILImage
 
 import logging
-from utils import util
+from quan.utils import find_modules_to_quantize, replace_module_by_names
+from utils import util, config
 from torch.utils.tensorboard import SummaryWriter
+from pathlib import Path
 
 from compressai.zoo.image import model_architectures as architectures
+
 
 def torch2img(x: torch.Tensor) -> Image.Image:
     return ToPILImage()(x.clamp_(0, 1).squeeze())
 
+
 def compute_metrics(
-    a: Union[np.array, Image.Image],
-    b: Union[np.array, Image.Image],
-    max_val: float = 255.0,
+        a: Union[np.array, Image.Image],
+        b: Union[np.array, Image.Image],
+        max_val: float = 255.0,
 ) -> Tuple[float, float]:
     """Returns PSNR and MS-SSIM between images `a` and `b`. """
     if isinstance(a, Image.Image):
@@ -67,6 +71,7 @@ def compute_metrics(
     p = 20 * np.log10(max_val) - 10 * np.log10(mse)
     m = ms_ssim(a, b, data_range=max_val).item()
     return p, m
+
 
 class RateDistortionLoss(nn.Module):
     """Custom rate distortion loss with a Lagrangian parameter."""
@@ -155,7 +160,8 @@ def configure_optimizers(net, args):
 
 
 def train_one_epoch(
-    model, criterion, train_dataloader, optimizer, aux_optimizer, epoch, clip_max_norm, logger_train, tb_logger, current_step
+        model, criterion, train_dataloader, optimizer, aux_optimizer, epoch, clip_max_norm, logger_train, tb_logger,
+        current_step
 ):
     model.train()
     device = next(model.parameters()).device
@@ -185,13 +191,14 @@ def train_one_epoch(
             if out_criterion["mse_loss"] is not None:
                 tb_logger.add_scalar('{}'.format('[train]: mse_loss'), out_criterion["mse_loss"].item(), current_step)
             if out_criterion["ms_ssim_loss"] is not None:
-                tb_logger.add_scalar('{}'.format('[train]: ms_ssim_loss'), out_criterion["ms_ssim_loss"].item(), current_step)
+                tb_logger.add_scalar('{}'.format('[train]: ms_ssim_loss'), out_criterion["ms_ssim_loss"].item(),
+                                     current_step)
 
         if i % 100 == 0:
             if out_criterion["ms_ssim_loss"] is None:
                 logger_train.info(
                     f"Train epoch {epoch}: ["
-                    f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
+                    f"{i * len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'Loss: {out_criterion["loss"].item():.4f} | '
                     f'MSE loss: {out_criterion["mse_loss"].item():.4f} | '
@@ -201,7 +208,7 @@ def train_one_epoch(
             else:
                 logger_train.info(
                     f"Train epoch {epoch}: ["
-                    f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
+                    f"{i * len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'Loss: {out_criterion["loss"].item():.4f} | '
                     f'MS-SSIM loss: {out_criterion["ms_ssim_loss"].item():.4f} | '
@@ -244,12 +251,12 @@ def test_epoch(epoch, test_dataloader, model, criterion, save_dir, logger_val, t
             psnr.update(p)
             ms_ssim.update(m)
 
-            if i % 20 == 1:
+            if i % 100 == 1:
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
                 rec.save(os.path.join(save_dir, '%03d_rec.png' % i))
                 img.save(os.path.join(save_dir, '%03d_gt.png' % i))
-    
+
     tb_logger.add_scalar('{}'.format('[val]: loss'), loss.avg, epoch + 1)
     tb_logger.add_scalar('{}'.format('[val]: bpp_loss'), bpp_loss.avg, epoch + 1)
     tb_logger.add_scalar('{}'.format('[val]: psnr'), psnr.avg, epoch + 1)
@@ -281,6 +288,100 @@ def test_epoch(epoch, test_dataloader, model, criterion, save_dir, logger_val, t
     return loss.avg
 
 
+def check_100_steps(model, criterion, train_dataloader, optimizer, aux_optimizer, epoch, clip_max_norm,
+                    logger_train, test_dataloader, save_dir):
+    model.train()
+    device = next(model.parameters()).device
+
+    for i, d in enumerate(train_dataloader):
+        d = d.to(device)
+
+        optimizer.zero_grad()
+        aux_optimizer.zero_grad()
+
+        out_net = model(d)
+
+        out_criterion = criterion(out_net, d)
+        out_criterion["loss"].backward()
+        if clip_max_norm > 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
+        optimizer.step()
+
+        aux_loss = model.aux_loss()
+        aux_loss.backward()
+        aux_optimizer.step()
+
+        if i == 100:
+            if out_criterion["ms_ssim_loss"] is None:
+                logger_train.info(
+                    f"Train epoch {epoch}: ["
+                    f"{i * len(d):5d}/{len(train_dataloader.dataset)}"
+                    f" ({100. * i / len(train_dataloader):.0f}%)] "
+                    f'Loss: {out_criterion["loss"].item():.4f} | '
+                    f'MSE loss: {out_criterion["mse_loss"].item():.4f} | '
+                    f'Bpp loss: {out_criterion["bpp_loss"].item():.2f} | '
+                    f"Aux loss: {aux_loss.item():.2f}"
+                )
+            else:
+                logger_train.info(
+                    f"Train epoch {epoch}: ["
+                    f"{i * len(d):5d}/{len(train_dataloader.dataset)}"
+                    f" ({100. * i / len(train_dataloader):.0f}%)] "
+                    f'Loss: {out_criterion["loss"].item():.4f} | '
+                    f'MS-SSIM loss: {out_criterion["ms_ssim_loss"].item():.4f} | '
+                    f'Bpp loss: {out_criterion["bpp_loss"].item():.2f} | '
+                    f"Aux loss: {aux_loss.item():.2f}"
+                )
+
+            model.eval()
+            device = next(model.parameters()).device
+
+            loss = AverageMeter()
+            bpp_loss = AverageMeter()
+            mse_loss = AverageMeter()
+            ms_ssim_loss = AverageMeter()
+            aux_loss = AverageMeter()
+            psnr = AverageMeter()
+            ms_ssim = AverageMeter()
+
+            with torch.no_grad():
+                for i_, d_ in enumerate(test_dataloader):
+                    d_ = d_.to(device)
+                    out_net = model(d_)
+                    out_criterion = criterion(out_net, d_)
+
+                    aux_loss.update(model.aux_loss())
+                    bpp_loss.update(out_criterion["bpp_loss"])
+                    loss.update(out_criterion["loss"])
+                    if out_criterion["mse_loss"] is not None:
+                        mse_loss.update(out_criterion["mse_loss"])
+                    if out_criterion["ms_ssim_loss"] is not None:
+                        ms_ssim_loss.update(out_criterion["ms_ssim_loss"])
+
+                    rec = torch2img(out_net['x_hat'])
+                    img = torch2img(d_)
+                    p, m = compute_metrics(rec, img)
+                    psnr.update(p)
+                    ms_ssim.update(m)
+
+                    if i_ % 100 == 1:
+                        if not os.path.exists(save_dir):
+                            os.makedirs(save_dir)
+                        rec.save(os.path.join(save_dir, '%03d_rec.png' % i_))
+                        img.save(os.path.join(save_dir, '%03d_gt.png' % i_))
+
+                logger_train.info(
+                    f"Test epoch {epoch}: Average losses: "
+                    f"Loss: {loss.avg:.4f} | "
+                    f"MSE loss: {mse_loss.avg:.4f} | "
+                    f"Bpp loss: {bpp_loss.avg:.2f} | "
+                    f"Aux loss: {aux_loss.avg:.2f} | "
+                    f"PSNR: {psnr.avg:.6f} | "
+                    f"MS-SSIM: {ms_ssim.avg:.6f}"
+                )
+            return
+
+
 def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
     torch.save(state, filename)
     if is_best:
@@ -301,12 +402,15 @@ def parse_args(argv):
         help="Model architecture (default: %(default)s)",
     )
     parser.add_argument(
-        "-d", "--dataset", type=str, required=True, help="Training dataset"
+        "--lsq", action="store_false", help="Apply LSQ quantization"
+    )
+    parser.add_argument(
+        "-d", "--dataset", type=str, default='c:/flicker', help="Training dataset"
     )
     parser.add_argument(
         "-e",
         "--epochs",
-        default=100,
+        default=130,
         type=int,
         help="Number of epochs (default: %(default)s)",
     )
@@ -328,14 +432,14 @@ def parse_args(argv):
         "-n",
         "--num-workers",
         type=int,
-        default=30,
+        default=4,
         help="Dataloaders threads (default: %(default)s)",
     )
     parser.add_argument(
         "--lambda",
         dest="lmbda",
         type=float,
-        default=1e-2,
+        default=1e-3,
         help="Bit-rate distortion parameter (default: %(default)s)",
     )
     parser.add_argument(
@@ -345,7 +449,7 @@ def parse_args(argv):
         help="Optimized for (default: %(default)s)",
     )
     parser.add_argument(
-        "--batch-size", type=int, default=16, help="Batch size (default: %(default)s)"
+        "--batch-size", type=int, default=8, help="Batch size (default: %(default)s)"
     )
     parser.add_argument(
         "--test-batch-size",
@@ -366,8 +470,8 @@ def parse_args(argv):
         help="Size of the patches to be cropped (default: %(default)s)",
     )
     parser.add_argument("--gpu_id", type=int, default=0, help="GPU ID")
-    parser.add_argument("--cuda", action="store_true", help="Use cuda")
-    parser.add_argument("--save", action="store_true", help="Save model to disk")
+    parser.add_argument("--cuda", action="store_false", help="Use cuda")
+    parser.add_argument("--save", action="store_false", help="Save model to disk")
     parser.add_argument(
         "--seed", type=float, help="Set random seed for reproducibility"
     )
@@ -384,8 +488,14 @@ def parse_args(argv):
         type=str,
         help="pretrained model path"
     )
+    parser.add_argument(
+        "-p",
+        "--pretrain", action="store_true"
+    )
     args = parser.parse_args(argv)
     return args
+
+# essential args: -exp, -e, -lr, --lsq, --cuda, -p, -q
 
 
 def main(argv):
@@ -398,15 +508,17 @@ def main(argv):
     if not os.path.exists(os.path.join('../experiments', args.experiment)):
         os.makedirs(os.path.join('../experiments', args.experiment))
 
-    util.setup_logger('train', os.path.join('../experiments', args.experiment), 'train_' + args.experiment, level=logging.INFO,
-                        screen=True, tofile=True)
-    util.setup_logger('val', os.path.join('../experiments', args.experiment), 'val_' + args.experiment, level=logging.INFO,
-                        screen=True, tofile=True)
+    util.setup_logger('train', os.path.join('../experiments', args.experiment), 'train_' + args.experiment,
+                      level=logging.INFO,
+                      screen=True, tofile=True)
+    util.setup_logger('val', os.path.join('../experiments', args.experiment), 'val_' + args.experiment,
+                      level=logging.INFO,
+                      screen=True, tofile=True)
 
     logger_train = logging.getLogger('train')
     logger_val = logging.getLogger('val')
     tb_logger = SummaryWriter(log_dir='../tb_logger/' + args.experiment)
-    
+
     if not os.path.exists(os.path.join('../experiments', args.experiment, 'checkpoints')):
         os.makedirs(os.path.join('../experiments', args.experiment, 'checkpoints'))
 
@@ -439,12 +551,21 @@ def main(argv):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
 
-    if args.checkpoint != None:
+    if args.checkpoint is not None:
         checkpoint = torch.load(args.checkpoint)
         net = architectures[args.model].from_state_dict(checkpoint['state_dict'])
         net.update()
+    elif args.pretrain:
+        net = models[args.model](quality=args.quality, pretrained=True)
     else:
-        net = models[args.model](quality=args.quality, train=True)
+        net = models[args.model](quality=args.quality)
+
+    if args.lsq:
+        quant_config = config.get_config('configs/quant_config.yaml')
+        modules_to_replace = find_modules_to_quantize(net, quant_config.quan)
+        net = replace_module_by_names(net, modules_to_replace)
+        logger_train.info(quant_config)
+
     net = net.to(device)
 
     logger_train.info(args)
@@ -454,18 +575,18 @@ def main(argv):
         net = CustomDataParallel(net)
 
     optimizer, aux_optimizer = configure_optimizers(net, args)
-    # lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min")
-    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450,550], gamma=0.1)
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.5, patience=20, verbose=True)
+    # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450, 550], gamma=0.1)
     criterion = RateDistortionLoss(lmbda=args.lmbda, metrics=args.metrics)
 
     if args.checkpoint != None:
         optimizer.load_state_dict(checkpoint['optimizer'])
         aux_optimizer.load_state_dict(checkpoint['aux_optimizer'])
-        # lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-        lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450,550], gamma=0.1)
-        lr_scheduler._step_count = checkpoint['lr_scheduler']['_step_count']
-        lr_scheduler.last_epoch = checkpoint['lr_scheduler']['last_epoch']
-        # print(lr_scheduler.state_dict())
+        lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450, 550], gamma=0.1)
+        # lr_scheduler._step_count = checkpoint['lr_scheduler']['_step_count']
+        # lr_scheduler.last_epoch = checkpoint['lr_scheduler']['last_epoch']
+        print(lr_scheduler.state_dict())
         start_epoch = checkpoint['epoch']
         best_loss = checkpoint['loss']
         current_step = start_epoch * math.ceil(len(train_dataloader.dataset) / args.batch_size)
@@ -492,8 +613,7 @@ def main(argv):
 
         save_dir = os.path.join('../experiments', args.experiment, 'val_images', '%03d' % (epoch + 1))
         loss = test_epoch(epoch, test_dataloader, net, criterion, save_dir, logger_val, tb_logger)
-        # lr_scheduler.step(loss)
-        lr_scheduler.step()
+        lr_scheduler.step(loss)
 
         is_best = loss < best_loss
         best_loss = min(loss, best_loss)

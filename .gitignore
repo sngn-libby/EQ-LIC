@@ -1,3 +1,9 @@
 
 *.xml
 *.iml
+*.png
+tests/
+figures/
+results/
+tb_logger/
+experiments/

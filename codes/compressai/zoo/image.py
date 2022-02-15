@@ -22,6 +22,7 @@ from compressai.models import (
     JointAutoregressiveHierarchicalPriors,
     MeanScaleHyperprior,
     ScaleHyperprior,
+    ICLR17Baseline,
 )
 
 from .pretrained import load_pretrained
@@ -34,6 +35,7 @@ __all__ = [
     "cheng2020_anchor",
     "cheng2020_attn",
     "invcompress",
+    "baseline"
 ]
 
 model_architectures = {
@@ -44,6 +46,7 @@ model_architectures = {
     "cheng2020-anchor": Cheng2020Anchor,
     "cheng2020-attn": Cheng2020Attention,
     "invcompress": InvCompress,
+    "baseline": ICLR17Baseline,
 }
 
 root_url = "https://compressai.s3.amazonaws.com/models/v1"
@@ -367,6 +370,7 @@ def cheng2020_attn(quality, metric="mse", pretrained=False, progress=True, **kwa
         "cheng2020-attn", metric, quality, pretrained, progress, **kwargs
     )
 
+
 def invcompress(
     quality, metric="mse", pretrained=False, progress=True, **kwargs
 ):
@@ -390,3 +394,8 @@ def invcompress(
     return _load_model(
         "invcompress", metric, quality, pretrained, progress, **kwargs
     )
+
+
+def baseline(channels=128, quality=1, metric="mse", pretrained=False):
+    model = model_architectures['baseline'](channels)
+    return model

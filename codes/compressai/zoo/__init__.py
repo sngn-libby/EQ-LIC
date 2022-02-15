@@ -22,4 +22,5 @@ models = {
     "cheng2020-anchor": cheng2020_anchor,
     "cheng2020-attn": cheng2020_attn,
     "invcompress": invcompress,
+    "baseline": baseline,
 }

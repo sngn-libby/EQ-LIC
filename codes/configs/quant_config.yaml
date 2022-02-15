@@ -1,0 +1,38 @@
+#============================ Quantization =====================================
+
+quan:
+  act: # (default for all layers)
+    # Quantizer type (choices: lsq)
+    mode: lsq
+    # Bit width of quantized activation
+    bit: 4
+    # Each output channel uses its own scaling factor
+    per_channel: false
+    # Whether to use symmetric quantization
+    symmetric: false
+    # Quantize all the numbers to non-negative
+    all_positive: false
+  weight: # (default for all layers)
+    # Quantizer type (choices: lsq)
+    mode: lsq
+    # Bit width of quantized weight
+    bit: 4
+    # Each output channel uses its own scaling factor
+    per_channel: true
+    # Whether to use symmetric quantization
+    symmetric: false
+    # Whether to quantize all the numbers to non-negative
+    all_positive: false
+  excepts:
+    # Specify quantized bit width for some layers, like this:
+    g_a.0:
+      act:
+        bit: 8
+        all_positive:
+      weight:
+        bit: 8
+    g_s.6:
+      act:
+        bit: 8
+      weight:
+        bit: 8

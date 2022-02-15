@@ -104,6 +104,14 @@ def inference(model, x, savedir = "", idx = 1):
     out_dec = model.decompress(out_enc["strings"], out_enc["shape"])
     dec_time = time.time() - start
 
+    # for test
+    test_img = model(x_padded)['x_hat']
+    tran1 = transforms.ToPILImage()
+    test_img = tran1(test_img[0])
+    test_img.show()
+    out_img = tran1(out_dec["x_hat"][0])
+
+
     out_dec["x_hat"] = F.pad(
         out_dec["x_hat"], (-padding_left, -padding_right, -padding_top, -padding_bottom)
     )

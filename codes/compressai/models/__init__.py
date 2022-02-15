@@ -15,3 +15,4 @@
 from .priors import *
 from .waseda import *
 from .ours import *
+from .iclr17_baseline import ICLR17Baseline
