@@ -12,6 +12,39 @@ import examples.train as train
 
 import os
 
+
+def print_layer_weights(weight1, weight2):
+    out_ch, in_ch, h, w = weight1.shape
+    n = 1
+    for i in range(out_ch):
+        print(f'---{i}th output channel---')
+        for j in range(0, in_ch, n):
+            if j == in_ch - in_ch % n and in_ch % n != 0:
+                continue
+            print(f'{j} ~ {j + n-1} input channel\n')
+            for k in range(h):
+                for s in range(w * n):
+                    print(f'{weight1[i][j + s // w][k][s % w]:.3f}', end=' ')
+                    if s + 1 == n * w:
+                        print(end='\n')
+                    elif (s + 1) % w == 0:
+                        print(end='\t')
+            print()
+    exit()
+
+
+def print_feature_channel_variance(fea1, fea2):
+    var1 = fea1.var(dim=(2, 3))
+    var2 = fea2.var(dim=(2, 3))
+    print(var1.shape)
+    for i in range(var1.shape[1]):
+        print(f'channel {i}, var1 = {var1[0][i]:.8f}')
+        print(f'channel {i}, var2 = {var2[0][i]:.8f}')
+    for i in range(var1.shape[1]):
+        print(f'channel {i} proportion: {var1[0][i]/var2[0][i]:.8f}')
+    exit()
+
+
 if __name__ == '__main__':
     test_transforms = transforms.Compose([transforms.CenterCrop(256),
                                           transforms.ToTensor()])
@@ -25,12 +58,11 @@ if __name__ == '__main__':
 
     # create models
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    state_dict = torch.load('../experiments/Factorized_fp_q5/checkpoints/checkpoint_006.pth.tar')
-    model = models["bmshj2018-factorized"](quality=1, pretrained=True)
+    model = models["bmshj2018-factorized"](quality=5, pretrained=True)
 
+    lsq_model = models["bmshj2018-factorized"](quality=5, pretrained=True)
+    # lsq_model.load_state_dict(model.state_dict())
     quant_config = config.get_config('configs/quant_config.yaml')
-    lsq_model = models["bmshj2018-factorized"](quality=1)
-    lsq_model.load_state_dict(model.state_dict())
     modules_to_replace = find_modules_to_quantize(lsq_model, quant_config.quan)
     replace_module_by_names(lsq_model, modules_to_replace)
 
@@ -38,10 +70,48 @@ if __name__ == '__main__':
     lsq_model.eval()
     device = next(model.parameters()).device
 
+    # print_layer_weights(model.g_s[6].weight, lsq_model.g_s[6].quan_w_fn(lsq_model.g_s[6].weight))
+
     save_dir = os.path.join('../tests', 'pretrained_base_128bit')
     with torch.no_grad():
         d = next(iter(test_dataloader))
         d = d.to(device)
+
+        '''print hidden feature'''
+        # y1 = model.g_a[0:7](d)
+        # y2 = lsq_model.g_a[0:7](d)
+        # y1_hat, _ = model.entropy_bottleneck(y1)
+        # y2_hat, _ = lsq_model.entropy_bottleneck(y2)
+        # fea1 = model.g_s[0:7](y1_hat)
+        # fea2 = lsq_model.g_s[0:7](y2_hat)
+        # print_feature_channel_variance(fea1, fea2)
+
+        '''replace one layer'''
+        # x = model.g_a[0:6](d)
+        # y = lsq_model.g_a[6](x)
+        # y = model.g_a(d)
+        # y_hat, _ = model.entropy_bottleneck(y)
+        # x_hat = model.g_s[0:6](y_hat)
+        # x_hat = lsq_model.g_s[6](x_hat)
+        # # x_hat = model.g_s[1:7](x_hat)
+        # x_hat = train.torch2img(x_hat[0])
+        # x_hat.show()
+        # exit()
+
+        '''init activation LSQ from sample activation'''
+        # x = d.clone()
+        # for i in [0, 2, 4, 6]:
+        #     lsq_model.g_a[i].quan_a_fn.init_from(x)
+        #     x = lsq_model.g_a[i](x)
+        #     if i in [0, 2, 4]:
+        #         x = lsq_model.g_a[i+1](x)
+        # x, _ = model.entropy_bottleneck(x)
+        # for i in [0, 2, 4, 6]:
+        #     lsq_model.g_s[i].quan_a_fn.init_from(x)
+        #     x = lsq_model.g_s[i](x)
+        #     if i in [0, 2, 4]:
+        #         x = lsq_model.g_s[i+1](x)
+
         out = model(d)
         lsq_out = lsq_model(d)
 
