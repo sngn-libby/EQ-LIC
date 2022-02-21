@@ -9,3 +9,5 @@ tb_logger/
 experiments/
 *.pyc
 codes/quan/quantizer/__pycache__/lsq.cpython-38.pyc
+*.pyc
+*.tar

@@ -475,15 +475,16 @@ def main(argv):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
 
-    if args.checkpoint is not None:
-        checkpoint = torch.load(args.checkpoint)
-        net = architectures[args.model].from_state_dict(checkpoint['state_dict'])
-        net.update()
-    elif args.pretrain:
+    if args.pretrain:
         net = models[args.model](quality=args.quality, pretrained=True)
     else:
         net = models[args.model](quality=args.quality)
-        
+    if args.checkpoint is not None:
+        checkpoint = torch.load(args.checkpoint)
+        if not args.lsq:
+            net = architectures[args.model].from_state_dict(checkpoint['state_dict'])
+            net.update()
+
     net = net.to(device)
 
     if args.lsq:
@@ -492,7 +493,8 @@ def main(argv):
         net = replace_module_by_names(net, modules_to_replace)
         logger_train.info(quant_config)
         init_act_lsq(net, train_dataloader)
-
+        if args.checkpoint is not None:
+            net.load_state_dict(checkpoint['state_dict'])
 
     logger_train.info(args)
     logger_train.info(net)

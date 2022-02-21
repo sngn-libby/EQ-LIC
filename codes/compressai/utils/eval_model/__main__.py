@@ -33,6 +33,9 @@ from PIL import Image
 from pytorch_msssim import ms_ssim
 from torchvision import transforms
 
+from quan.utils import find_modules_to_quantize, replace_module_by_names
+from utils import config
+
 import compressai
 
 from compressai.zoo import models as pretrained_models
@@ -171,6 +174,23 @@ def load_checkpoint(arch: str, checkpoint_path: str) -> nn.Module:
     return architectures[arch].from_state_dict(torch.load(checkpoint_path)).eval()
 
 
+def load_lsq_checkpoint(arch: str, checkpoint_path: str) -> nn.Module:
+    model = pretrained_models[arch](quality=1)
+    quant_config = config.get_config('configs/quant_config.yaml')
+    modules_to_replace = find_modules_to_quantize(model, quant_config.quan)
+    model = replace_module_by_names(model, modules_to_replace)
+    if quant_config.quan.act.per_channel:
+        x = torch.ones([1, 128, 1, 1])
+        for i in [0, 2, 4, 6]:
+            model.g_a[i].quan_a_fn.init_from_batch(x)
+            model.g_s[i].quan_a_fn.init_from_batch(x)
+        model.g_a[0].quan_a_fn.init_from_batch(torch.ones([1, 3, 1, 1]))
+        model.g_s[0].quan_a_fn.init_from_batch(torch.ones([1, 192, 1, 1]))
+    model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+    model.eval()
+    return model
+
+
 def eval_model(model, filepaths, entropy_estimation=False, half=False, savedir = ""):
     device = next(model.parameters()).device
     metrics = defaultdict(float)
@@ -208,8 +228,8 @@ def setup_args():
         "--arch",
         type=str,
         choices=pretrained_models.keys(),
+        default='bmshj2018-factorized',
         help="model architecture",
-        required=True,
     )
     parent_parser.add_argument(
         "-c",
@@ -246,6 +266,7 @@ def setup_args():
         default="",
     )
     parent_parser.add_argument("--gpu_id", type=int, default=0, help="GPU ID")
+    parent_parser.add_argument("--lsq", action='store_false')
     parser = argparse.ArgumentParser(
         description="Evaluate a model on an image dataset.", add_help=True
     )
@@ -309,7 +330,7 @@ def main(argv):
         checkpoint_updated = os.path.join(checkpoint_updated_dir, os.listdir(checkpoint_updated_dir)[0])
         runs = [checkpoint_updated]
         opts = (args.arch,)
-        load_func = load_checkpoint
+        load_func = load_lsq_checkpoint if args.lsq else load_checkpoint
         log_fmt = "\rEvaluating {run:s}"
 
     results = defaultdict(list)
