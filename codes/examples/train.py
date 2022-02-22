@@ -491,6 +491,7 @@ def main(argv):
         quant_config = config.get_config('configs/quant_config.yaml')
         modules_to_replace = find_modules_to_quantize(net, quant_config.quan)
         net = replace_module_by_names(net, modules_to_replace)
+        net = net.to(device)
         logger_train.info(quant_config)
         init_act_lsq(net, train_dataloader)
         if args.checkpoint is not None:
