@@ -58,21 +58,23 @@ if __name__ == '__main__':
 
     # create models
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = models["bmshj2018-factorized"](quality=5, pretrained=True)
+    model = models["mbt2018-mean"](quality=5, pretrained=True)
 
-    lsq_model = models["bmshj2018-factorized"](quality=5, pretrained=True)
+    lsq_model = models["mbt2018-mean"](quality=5, pretrained=True)
     # lsq_model.load_state_dict(model.state_dict())
     quant_config = config.get_config('configs/quant_config.yaml')
     modules_to_replace = find_modules_to_quantize(lsq_model, quant_config.quan)
     replace_module_by_names(lsq_model, modules_to_replace)
 
+    model.to(device)
+    lsq_model.to(device)
+
     model.eval()
     lsq_model.eval()
-    device = next(model.parameters()).device
 
     # print_layer_weights(model.g_s[6].weight, lsq_model.g_s[6].quan_w_fn(lsq_model.g_s[6].weight))
 
-    save_dir = os.path.join('../tests', 'pretrained_base_128bit')
+    save_dir = os.path.join('../tests', 'mean-scale-init-test')
     with torch.no_grad():
         d = next(iter(test_dataloader))
         d = d.to(device)
@@ -99,18 +101,7 @@ if __name__ == '__main__':
         # exit()
 
         '''init activation LSQ from sample activation'''
-        # x = d.clone()
-        # for i in [0, 2, 4, 6]:
-        #     lsq_model.g_a[i].quan_a_fn.init_from(x)
-        #     x = lsq_model.g_a[i](x)
-        #     if i in [0, 2, 4]:
-        #         x = lsq_model.g_a[i+1](x)
-        # x, _ = model.entropy_bottleneck(x)
-        # for i in [0, 2, 4, 6]:
-        #     lsq_model.g_s[i].quan_a_fn.init_from(x)
-        #     x = lsq_model.g_s[i](x)
-        #     if i in [0, 2, 4]:
-        #         x = lsq_model.g_s[i+1](x)
+        train.init_act_lsq(lsq_model, test_dataloader)
 
         out = model(d)
         lsq_out = lsq_model(d)

@@ -36,7 +36,6 @@ class LsqQuan(Quantizer):
 
         self.per_channel = per_channel
         self.s = t.nn.Parameter(t.ones(1) / (self.thd_pos ** 0.5))
-        self.b = t.nn.Parameter(t.ones(1) * 0.3)
 
     def init_from(self, x, *args, **kwargs):
         if self.per_channel:
@@ -61,6 +60,5 @@ class LsqQuan(Quantizer):
         x = x / s_scale
         x = t.clamp(x, self.thd_neg, self.thd_pos)
         x = round_pass(x)
-        x = x + self.b
         x = x * s_scale
         return x

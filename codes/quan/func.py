@@ -1,5 +1,6 @@
 import torch as t
 import torch.nn.functional as F
+from compressai.layers.gdn import GDN
 
 
 class QuanConv2d(t.nn.Conv2d):
@@ -73,9 +74,35 @@ class QuanConvTranspose2d(t.nn.ConvTranspose2d):
         return F.conv_transpose2d(quantized_act, quantized_weight, self.bias, self.stride, self.padding,
                                   self.output_padding, self.groups, self.dilation)
 
+class QuanGDN(GDN):
+    def __init__(self, m: GDN, quan_w_fn=None, quan_a_fn=None):
+        assert type(m) == GDN
+        super().__init__(m.beta.shape[0], inverse=m.inverse)
+        self.quan_w_fn = quan_w_fn
+        self.quan_a_fn = quan_a_fn
+
+    def forward(self, x):
+        _, C, _, _ = x.size()
+
+        beta = self.beta_reparam(self.beta)
+        gamma = self.gamma_reparam(self.gamma)
+        gamma = gamma.reshape(C, C, 1, 1)
+        norm = F.conv2d(x ** 2, gamma, beta)
+
+        if self.inverse:
+            norm = t.sqrt(norm)
+        else:
+            norm = t.rsqrt(norm)
+
+        out = x * norm
+
+        return out
+
+
 
 QuanModuleMapping = {
     t.nn.Conv2d: QuanConv2d,
     t.nn.Linear: QuanLinear,
     t.nn.ConvTranspose2d: QuanConvTranspose2d
+    # GDN: QuanGDN,
 }

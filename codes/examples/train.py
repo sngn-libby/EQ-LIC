@@ -303,7 +303,7 @@ def parse_args(argv):
     parser.add_argument(
         "-m",
         "--model",
-        default="bmshj2018-factorized",
+        default="mbt2018-mean",
         choices=models.keys(),
         help="Model architecture (default: %(default)s)",
     )
@@ -316,14 +316,14 @@ def parse_args(argv):
     parser.add_argument(
         "-e",
         "--epochs",
-        default=600,
+        default=50,
         type=int,
         help="Number of epochs (default: %(default)s)",
     )
     parser.add_argument(
         "-lr",
         "--learning-rate",
-        default=1e-4,
+        default=1e-3,
         type=float,
         help="Learning rate (default: %(default)s)",
     )
@@ -355,7 +355,7 @@ def parse_args(argv):
         help="Optimized for (default: %(default)s)",
     )
     parser.add_argument(
-        "--batch-size", type=int, default=8, help="Batch size (default: %(default)s)"
+        "--batch-size", type=int, default=30, help="Batch size (default: %(default)s)"
     )
     parser.add_argument(
         "--test-batch-size",
@@ -377,7 +377,7 @@ def parse_args(argv):
     )
     parser.add_argument("--gpu_id", type=int, default=0, help="GPU ID")
     parser.add_argument("--cuda", action="store_false", help="Use cuda")
-    parser.add_argument("--save", action="store_false", help="Save model to disk")
+    parser.add_argument("--save", action="store_true", help="Save model to disk")
     parser.add_argument(
         "--seed", type=float, help="Set random seed for reproducibility"
     )
@@ -406,17 +406,38 @@ def init_act_lsq(model, dataloader):
     print('initializing act lsq')
     device = next(model.parameters()).device
     x = next(iter(dataloader)).to(device)
-    for i in [0, 2, 4, 6]:
-        model.g_a[i].quan_a_fn.init_from_batch(x)
+
+    # x = y
+    for i in range(7):
+        if i in [0, 2, 4, 6]:
+            model.g_a[i].quan_a_fn.init_from_batch(x)
         x = model.g_a[i](x)
+
+    # for hyper-prior model, h_a
+    z = x  # 여기서 x가 안 바뀌어야 할텐데...
+    for i in range(5):
         if i in [0, 2, 4]:
-            x = model.g_a[i + 1](x)
-    x, _ = model.entropy_bottleneck(x)
-    for i in [0, 2, 4, 6]:
-        model.g_s[i].quan_a_fn.init_from_batch(x)
+            model.h_a[i].quan_a_fn.init_from_batch(z)
+        z = model.h_a[i](z)
+
+    z, _ = model.entropy_bottleneck(z)
+    # x, _ = model.entropy_bottleneck(x)
+
+    # for hyper-prior model, h_s
+    for i in range(5):
+        if i in [0, 2, 4]:
+            model.h_s[i].quan_a_fn.init_from_batch(z)
+        z = model.h_s[i](z)
+
+    # for hyper-prior model, gaussian_params, x = y_hat
+    scales_hat, means_hat = z.chunk(2, 1)
+    x, _ = model.gaussian_conditional(x, scales_hat, means=means_hat)
+
+    # x = x_hat
+    for i in range(7):
+        if i in [0, 2, 4, 6]:
+            model.g_s[i].quan_a_fn.init_from_batch(x)
         x = model.g_s[i](x)
-        if i in [0, 2, 4]:
-            x = model.g_s[i + 1](x)
 
 
 # essential args: -exp, -e, -lr, --lsq, -p, -q, --lambda
@@ -493,9 +514,11 @@ def main(argv):
         net = replace_module_by_names(net, modules_to_replace)
         net = net.to(device)
         logger_train.info(quant_config)
-        init_act_lsq(net, train_dataloader)
         if args.checkpoint is not None:
             net.load_state_dict(checkpoint['state_dict'])
+        else:
+            init_act_lsq(net, train_dataloader)
+        net = net.to(device)
 
     logger_train.info(args)
     logger_train.info(net)
@@ -504,7 +527,8 @@ def main(argv):
         net = CustomDataParallel(net)
 
     optimizer, aux_optimizer = configure_optimizers(net, args)
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.3, patience=20, verbose=True)
+    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+    # lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.3, patience=20, verbose=True)
     # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450, 550], gamma=0.1)
     criterion = RateDistortionLoss(lmbda=args.lmbda, metrics=args.metrics)
 
