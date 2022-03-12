@@ -108,11 +108,11 @@ def inference(model, x, savedir = "", idx = 1):
     dec_time = time.time() - start
 
     # for test
-    test_img = model(x_padded)['x_hat']
-    tran1 = transforms.ToPILImage()
-    test_img = tran1(test_img[0])
-    test_img.show()
-    out_img = tran1(out_dec["x_hat"][0])
+    # test_img = model(x_padded)['x_hat']
+    # tran1 = transforms.ToPILImage()
+    # test_img = tran1(test_img[0])
+    # test_img.show()
+    # out_img = tran1(out_dec["x_hat"][0])
 
 
     out_dec["x_hat"] = F.pad(
@@ -174,8 +174,8 @@ def load_checkpoint(arch: str, checkpoint_path: str) -> nn.Module:
     return architectures[arch].from_state_dict(torch.load(checkpoint_path)).eval()
 
 
-def load_lsq_checkpoint(arch: str, checkpoint_path: str) -> nn.Module:
-    model = pretrained_models[arch](quality=1)
+def load_lsq_checkpoint(arch: str, quality: int, checkpoint_path: str,) -> nn.Module:
+    model = pretrained_models[arch](quality=quality)
     quant_config = config.get_config('configs/quant_config.yaml')
     modules_to_replace = find_modules_to_quantize(model, quant_config.quan)
     model = replace_module_by_names(model, modules_to_replace)
@@ -228,7 +228,7 @@ def setup_args():
         "--arch",
         type=str,
         choices=pretrained_models.keys(),
-        default='bmshj2018-factorized',
+        default='mbt2018-mean',
         help="model architecture",
     )
     parent_parser.add_argument(
@@ -304,6 +304,12 @@ def setup_args():
     #     help="checkpoint path",
     # )
     checkpoint_parser.add_argument("-exp", "--experiment", type=str, required=True, help="Experiment name")
+    checkpoint_parser.add_argument(
+        "-q",
+        "--quality",
+        type=int,
+        default=1,
+    )
 
     return parser
 
@@ -329,7 +335,7 @@ def main(argv):
         checkpoint_updated_dir = os.path.join('../experiments', args.experiment, 'checkpoint_updated')
         checkpoint_updated = os.path.join(checkpoint_updated_dir, os.listdir(checkpoint_updated_dir)[0])
         runs = [checkpoint_updated]
-        opts = (args.arch,)
+        opts = (args.arch, args.quality)
         load_func = load_lsq_checkpoint if args.lsq else load_checkpoint
         log_fmt = "\rEvaluating {run:s}"
 

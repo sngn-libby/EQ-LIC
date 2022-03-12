@@ -377,7 +377,7 @@ def parse_args(argv):
     )
     parser.add_argument("--gpu_id", type=int, default=0, help="GPU ID")
     parser.add_argument("--cuda", action="store_false", help="Use cuda")
-    parser.add_argument("--save", action="store_true", help="Save model to disk")
+    parser.add_argument("--save", action="store_false", help="Save model to disk")
     parser.add_argument(
         "--seed", type=float, help="Set random seed for reproducibility"
     )
@@ -462,7 +462,7 @@ def main(argv):
 
     logger_train = logging.getLogger('train')
     logger_val = logging.getLogger('val')
-    tb_logger = SummaryWriter(log_dir='../tb_logger/' + args.experiment)
+    tb_logger = SummaryWriter(log_dir='../experiments/' + args.experiment + '/tb_logger/')
 
     if not os.path.exists(os.path.join('../experiments', args.experiment, 'checkpoints')):
         os.makedirs(os.path.join('../experiments', args.experiment, 'checkpoints'))
