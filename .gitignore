@@ -18,3 +18,5 @@ codes/quan/quantizer/__pycache__/lsq.cpython-38.pyc
 codes/configs/quant_config.yaml
 codes/examples/RD_curve.py
 *.pyc
+checkpoint_best_loss.pth.tar
+checkpoint_best_loss.pth.tar

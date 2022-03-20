@@ -16,6 +16,8 @@ def quantizer(default_cfg, this_cfg=None):
         q = LsqQuan
     elif target_cfg['mode'] == 'offset_lsq':
         q = OffsetLSQ
+    elif target_cfg['mode'] == 'offset_lsq_plus':
+        q = OffsetLSQPlus
     else:
         raise ValueError('Cannot find quantizer `%s`', target_cfg['mode'])
 
