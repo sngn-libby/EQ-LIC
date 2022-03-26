@@ -3,7 +3,7 @@
 quan:
   act: # (default for all layers)
     # Quantizer type (choices: lsq)
-    mode: offset_lsq_plus
+    mode: ste_lsq
     # Bit width of quantized activation
     bit: 8
     # Each output channel uses its own scaling factor

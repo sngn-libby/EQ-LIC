@@ -14,6 +14,8 @@ def quantizer(default_cfg, this_cfg=None):
         q = IdentityQuan
     elif target_cfg['mode'] == 'lsq':
         q = LsqQuan
+    elif target_cfg['mode'] == 'ste_lsq':
+        q = STELsq
     elif target_cfg['mode'] == 'offset_lsq':
         q = OffsetLSQ
     elif target_cfg['mode'] == 'offset_lsq_plus':
