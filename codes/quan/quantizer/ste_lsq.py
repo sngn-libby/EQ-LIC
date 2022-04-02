@@ -11,7 +11,7 @@ def grad_scale(x, scale):
 
 def round_ste(x):
     y = x.round()
-    y_grad = 4 * (x - x.round()).pow(3)
+    y_grad = 512 * (x - x.round()).pow(10)
     return (y - y_grad).detach() + y_grad
 
 

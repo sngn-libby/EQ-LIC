@@ -15,7 +15,7 @@ def round_pass(x):
     return (y - y_grad).detach() + y_grad
 
 
-class OffsetLSQPlus(Quantizer):
+class LiqQuan(Quantizer):
     def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
         super().__init__(bit)
 
@@ -36,13 +36,11 @@ class OffsetLSQPlus(Quantizer):
 
         self.per_channel = per_channel
         self.s = t.nn.Parameter(t.ones(1) / (self.thd_pos ** 0.5))
-        self.b = t.nn.Parameter(t.ones(1))
 
     def init_from(self, x, *args, **kwargs):
         if self.per_channel:
             self.s = t.nn.Parameter(
                 x.detach().abs().mean(dim=(1, 2, 3), keepdim=True) * 2 / (self.thd_pos ** 0.5))
-            self.b = t.nn.Parameter(t.ones(x.shape[0], 1, 1, 1))
         else:
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
@@ -50,7 +48,6 @@ class OffsetLSQPlus(Quantizer):
         if self.per_channel:
             self.s = t.nn.Parameter(
                 x.detach().abs().mean(dim=(0, 2, 3), keepdim=True) * 2 / (self.thd_pos ** 0.5))
-            self.b = t.nn.Parameter(t.ones(1, x.shape[1], 1, 1))
         else:
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
@@ -59,9 +56,9 @@ class OffsetLSQPlus(Quantizer):
             s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         else:
             s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-        s_scale = grad_scale(self.s, s_grad_scale)  # s와 같은데 grad scale 적용된 버전
-        x = (x - self.b) / s_scale
+        s_scale = grad_scale(self.s, s_grad_scale) # s와 같은데 grad scale 적용된 버전
+        x = x / s_scale
         x = t.clamp(x, self.thd_neg, self.thd_pos)
-        x = round_pass(x)   # bar x
-        x = x * s_scale + self.b  # x hat
+        x = round_pass(x)
+        x = x * s_scale
         return x
