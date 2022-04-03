@@ -41,6 +41,7 @@ class LiqQuan(Quantizer):
         x = x / self.interval
         x = t.clamp(x, -1, 1)
         x = (x + 1.0) / 2.0
-        x = round_pass(x * (self.bit-1)) * (self.bit-1)
+        x = round_pass(x * (self.bit-1)) / (self.bit-1)
+        x = x * 2.0 - 1.0
         x = x * self.interval
         return x
