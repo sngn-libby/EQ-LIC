@@ -316,14 +316,14 @@ def parse_args(argv):
     parser.add_argument(
         "-e",
         "--epochs",
-        default=50,
+        default=10,
         type=int,
         help="Number of epochs (default: %(default)s)",
     )
     parser.add_argument(
         "-lr",
         "--learning-rate",
-        default=1e-3,
+        default=2e-4,
         type=float,
         help="Learning rate (default: %(default)s)",
     )
@@ -355,7 +355,7 @@ def parse_args(argv):
         help="Optimized for (default: %(default)s)",
     )
     parser.add_argument(
-        "--batch-size", type=int, default=30, help="Batch size (default: %(default)s)"
+        "--batch-size", type=int, default=16, help="Batch size (default: %(default)s)"
     )
     parser.add_argument(
         "--test-batch-size",
@@ -527,9 +527,10 @@ def main(argv):
         net = CustomDataParallel(net)
 
     optimizer, aux_optimizer = configure_optimizers(net, args)
-    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+    # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     # lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.3, patience=20, verbose=True)
     # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450, 550], gamma=0.1)
+    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
     criterion = RateDistortionLoss(lmbda=args.lmbda, metrics=args.metrics)
 
     if args.checkpoint is not None:
