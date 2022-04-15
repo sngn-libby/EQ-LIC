@@ -514,10 +514,9 @@ def main(argv):
         net = replace_module_by_names(net, modules_to_replace)
         net = net.to(device)
         logger_train.info(quant_config)
+        init_act_lsq(net, train_dataloader)
         if args.checkpoint is not None:
             net.load_state_dict(checkpoint['state_dict'])
-        else:
-            init_act_lsq(net, train_dataloader)
         net = net.to(device)
 
     logger_train.info(args)

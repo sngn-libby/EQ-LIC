@@ -20,3 +20,5 @@ codes/examples/RD_curve.py
 *.pyc
 checkpoint_best_loss.pth.tar
 checkpoint_best_loss.pth.tar
+codes/configs/quant_config.yaml
+codes/configs/quant_config.yaml
