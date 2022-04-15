@@ -566,7 +566,7 @@ def main(argv):
 
         save_dir = os.path.join('../experiments', args.experiment, 'val_images', '%03d' % (epoch + 1))
         loss = test_epoch(epoch, test_dataloader, net, criterion, save_dir, logger_val, tb_logger)
-        lr_scheduler.step(loss)
+        lr_scheduler.step()
 
         is_best = loss < best_loss
         best_loss = min(loss, best_loss)
