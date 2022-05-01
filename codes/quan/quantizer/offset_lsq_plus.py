@@ -49,25 +49,11 @@ class OffsetLSQPlus(Quantizer):
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
     def init_from_batch(self, x, *args, **kwargs):
-        if self.per_channel:
-            self.s = t.nn.Parameter(
-                x.detach().abs().mean(dim=(0, 2, 3), keepdim=True) * 2 / (self.thd_pos ** 0.5))
-            self.b = t.nn.Parameter(t.ones(1, x.shape[1], 1, 1)) * -1e-9
-        else:
-            self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
+        minx = t.min(x.detach())
+        self.s.data = (t.max(x.detach()) - minx) / (self.thd_pos - self.thd_neg)
+        # self.b.data = minx - self.s.data * self.thd_neg
 
     def forward(self, x):
-        if self.init_state == 0:
-            mina = t.min(x.detach())
-            self.s.data = (t.max(x.detach()) - mina) / (self.thd_pos - self.thd_neg)
-            self.b.data = mina - self.s.data * self.thd_neg
-            self.init_state += 1
-        elif self.init_state < self.batch_init:
-            mina = t.min(x.detach())
-            self.s.data = self.s.data * 0.9 + 0.1 * (t.max(x.detach()) - mina) / (self.thd_pos - self.thd_neg)
-            self.b.data = self.s.data * 0.9 + 0.1 * (mina - self.s.data * self.thd_neg)
-            self.init_state += 1
-
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         s_scale = grad_scale(self.s, s_grad_scale)  # s와 같은데 grad scale 적용된 버전
         x = (x - self.b) / s_scale
