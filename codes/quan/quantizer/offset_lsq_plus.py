@@ -36,7 +36,7 @@ class OffsetLSQPlus(Quantizer):
 
         self.per_channel = per_channel
         self.s = t.nn.Parameter(t.ones(1) / (self.thd_pos ** 0.5))
-        self.b = t.nn.Parameter(t.ones(1))
+        self.b = t.nn.Parameter(t.tensor([float(-1e-9)]))
 
     def init_from(self, x, *args, **kwargs):
         if self.per_channel:
@@ -50,7 +50,7 @@ class OffsetLSQPlus(Quantizer):
         if self.per_channel:
             self.s = t.nn.Parameter(
                 x.detach().abs().mean(dim=(0, 2, 3), keepdim=True) * 2 / (self.thd_pos ** 0.5))
-            self.b = t.nn.Parameter(t.ones(1, x.shape[1], 1, 1))
+            self.b = t.nn.Parameter(t.ones(1, x.shape[1], 1, 1)) * -1e-9
         else:
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
