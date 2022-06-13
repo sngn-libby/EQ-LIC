@@ -41,7 +41,6 @@ __all__ = [
 class CompressionModel(nn.Module):
     """Base class for constructing an auto-encoder with at least one entropy
     bottleneck module.
-
     Args:
         entropy_bottleneck_channels (int): Number of channels of the entropy
             bottleneck
@@ -75,16 +74,12 @@ class CompressionModel(nn.Module):
 
     def update(self, force=False):
         """Updates the entropy bottleneck(s) CDF values.
-
         Needs to be called once after training to be able to later perform the
         evaluation with an actual entropy coder.
-
         Args:
             force (bool): overwrite previous values (default: False)
-
         Returns:
             updated (bool): True if one of the EntropyBottlenecks was updated.
-
         """
         updated = False
         for m in self.children():
@@ -110,7 +105,6 @@ class FactorizedPrior(CompressionModel):
     N. Johnston: `"Variational Image Compression with a Scale Hyperprior"
     <https://arxiv.org/abs/1802.01436>`_, Int Conf. on Learning Representations
     (ICLR), 2018.
-
     Args:
         N (int): Number of channels
         M (int): Number of channels in the expansion layers (last layer of the
@@ -197,7 +191,6 @@ class ScaleHyperprior(CompressionModel):
     N. Johnston: `"Variational Image Compression with a Scale Hyperprior"
     <https://arxiv.org/abs/1802.01436>`_ Int. Conf. on Learning Representations
     (ICLR), 2018.
-
     Args:
         N (int): Number of channels
         M (int): Number of channels in the expansion layers (last layer of the
@@ -317,7 +310,6 @@ class MeanScaleHyperprior(ScaleHyperprior):
     Minnen, J. Balle, G.D. Toderici: `"Joint Autoregressive and Hierarchical
     Priors for Learned Image Compression" <https://arxiv.org/abs/1809.02736>`_,
     Adv. in Neural Information Processing Systems 31 (NeurIPS 2018).
-
     Args:
         N (int): Number of channels
         M (int): Number of channels in the expansion layers (last layer of the
@@ -357,6 +349,43 @@ class MeanScaleHyperprior(ScaleHyperprior):
             "likelihoods": {"y": y_likelihoods, "z": z_likelihoods},
         }
 
+    def init_act(self, dataloader):
+        print('initializing act lsq')
+        device = next(self.parameters()).device
+        x = next(iter(dataloader)).to(device)
+
+        # x = y
+        for i in range(7):
+            if i in [0, 2, 4, 6]:
+                self.g_a[i].quan_a_fn.init_from_batch(x)
+            x = self.g_a[i](x)
+
+        # for hyper-prior model, h_a
+        z = x  # 여기서 x가 안 바뀌어야 할텐데...
+        for i in range(5):
+            if i in [0, 2, 4]:
+                self.h_a[i].quan_a_fn.init_from_batch(z)
+            z = self.h_a[i](z)
+
+        z, _ = self.entropy_bottleneck(z)
+        # x, _ = model.entropy_bottleneck(x)
+
+        # for hyper-prior model, h_s
+        for i in range(5):
+            if i in [0, 2, 4]:
+                self.h_s[i].quan_a_fn.init_from_batch(z)
+            z = self.h_s[i](z)
+
+        # for hyper-prior model, gaussian_params, x = y_hat
+        scales_hat, means_hat = z.chunk(2, 1)
+        x, _ = self.gaussian_conditional(x, scales_hat, means=means_hat)
+
+        # x = x_hat
+        for i in range(7):
+            if i in [0, 2, 4, 6]:
+                self.g_s[i].quan_a_fn.init_from_batch(x)
+            x = self.g_s[i](x)
+
     def compress(self, x):
         y = self.g_a(x)
         z = self.h_a(y)
@@ -388,7 +417,6 @@ class JointAutoregressiveHierarchicalPriors(MeanScaleHyperprior):
     Minnen, J. Balle, G.D. Toderici: `"Joint Autoregressive and Hierarchical
     Priors for Learned Image Compression" <https://arxiv.org/abs/1809.02736>`_,
     Adv. in Neural Information Processing Systems 31 (NeurIPS 2018).
-
     Args:
         N (int): Number of channels
         M (int): Number of channels in the expansion layers (last layer of the

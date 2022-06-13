@@ -23,4 +23,5 @@ models = {
     "cheng2020-attn": cheng2020_attn,
     "invcompress": invcompress,
     "baseline": baseline,
+    "aux-mean": aux_mean,
 }

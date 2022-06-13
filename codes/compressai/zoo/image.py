@@ -23,6 +23,7 @@ from compressai.models import (
     MeanScaleHyperprior,
     ScaleHyperprior,
     ICLR17Baseline,
+    AuxMeanScale
 )
 
 from .pretrained import load_pretrained
@@ -35,7 +36,8 @@ __all__ = [
     "cheng2020_anchor",
     "cheng2020_attn",
     "invcompress",
-    "baseline"
+    "baseline",
+    "aux_mean"
 ]
 
 model_architectures = {
@@ -47,6 +49,7 @@ model_architectures = {
     "cheng2020-attn": Cheng2020Attention,
     "invcompress": InvCompress,
     "baseline": ICLR17Baseline,
+    "aux-mean": AuxMeanScale,
 }
 
 root_url = "https://compressai.s3.amazonaws.com/models/v1"
@@ -202,6 +205,16 @@ cfgs = {
         6: (192,),
         7: (192,),
         8: (192,),
+    },
+    "aux-mean": {
+        1: (128, 192),
+        2: (128, 192),
+        3: (128, 192),
+        4: (128, 192),
+        5: (192, 320),
+        6: (192, 320),
+        7: (192, 320),
+        8: (192, 320),
     },
 }
 
@@ -399,3 +412,7 @@ def invcompress(
 def baseline(channels=128, quality=1, metric="mse", pretrained=False):
     model = model_architectures['baseline'](channels)
     return model
+
+
+def aux_mean(quality, metric="mse", pretrained=False, progress=True, **kwargs):
+    return _load_model("aux-mean", metric, quality, pretrained, progress, **kwargs)

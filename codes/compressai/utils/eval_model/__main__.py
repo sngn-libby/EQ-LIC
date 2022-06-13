@@ -34,6 +34,7 @@ from pytorch_msssim import ms_ssim
 from torchvision import transforms
 
 from quan.utils import find_modules_to_quantize, replace_module_by_names
+from quan.quantizer import IdentityQuan
 from utils import config
 
 import compressai
@@ -184,9 +185,14 @@ def load_lsq_checkpoint(arch: str, quality: int, checkpoint_path: str,) -> nn.Mo
         for i in [0, 2, 4, 6]:
             model.g_a[i].quan_a_fn.init_from_batch(x)
             model.g_s[i].quan_a_fn.init_from_batch(x)
+            # model.g_a[i].quan_a_fn = IdentityQuan
+            # model.g_s[i].quan_a_fn = IdentityQuan
         model.g_a[0].quan_a_fn.init_from_batch(torch.ones([1, 3, 1, 1]))
         model.g_s[0].quan_a_fn.init_from_batch(torch.ones([1, 192, 1, 1]))
     model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+    # for i in [0, 2, 4, 6]:
+    #     model.g_a[i].quan_a_fn = IdentityQuan
+    #     model.g_s[i].quan_a_fn = IdentityQuan
     model.eval()
     return model
 

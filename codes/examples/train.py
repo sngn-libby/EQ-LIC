@@ -151,17 +151,18 @@ def configure_optimizers(net, args):
     optimizer = optim.Adam(
         (p for p in parameters if p.requires_grad),
         lr=args.learning_rate,
+        weight_decay=0,
     )
     aux_optimizer = optim.Adam(
         (p for p in aux_parameters if p.requires_grad),
         lr=args.aux_learning_rate,
+        weight_decay=0,
     )
     return optimizer, aux_optimizer
 
 
 def train_one_epoch(
-        model, criterion, train_dataloader, optimizer, aux_optimizer, epoch, clip_max_norm, logger_train, tb_logger,
-        current_step
+    model, criterion, train_dataloader, optimizer, aux_optimizer, epoch, clip_max_norm, logger_train, tb_logger, current_step
 ):
     model.train()
     device = next(model.parameters()).device
@@ -191,14 +192,13 @@ def train_one_epoch(
             if out_criterion["mse_loss"] is not None:
                 tb_logger.add_scalar('{}'.format('[train]: mse_loss'), out_criterion["mse_loss"].item(), current_step)
             if out_criterion["ms_ssim_loss"] is not None:
-                tb_logger.add_scalar('{}'.format('[train]: ms_ssim_loss'), out_criterion["ms_ssim_loss"].item(),
-                                     current_step)
+                tb_logger.add_scalar('{}'.format('[train]: ms_ssim_loss'), out_criterion["ms_ssim_loss"].item(), current_step)
 
         if i % 100 == 0:
             if out_criterion["ms_ssim_loss"] is None:
                 logger_train.info(
                     f"Train epoch {epoch}: ["
-                    f"{i * len(d):5d}/{len(train_dataloader.dataset)}"
+                    f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'Loss: {out_criterion["loss"].item():.4f} | '
                     f'MSE loss: {out_criterion["mse_loss"].item():.4f} | '
@@ -208,7 +208,7 @@ def train_one_epoch(
             else:
                 logger_train.info(
                     f"Train epoch {epoch}: ["
-                    f"{i * len(d):5d}/{len(train_dataloader.dataset)}"
+                    f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'Loss: {out_criterion["loss"].item():.4f} | '
                     f'MS-SSIM loss: {out_criterion["ms_ssim_loss"].item():.4f} | '
@@ -316,14 +316,14 @@ def parse_args(argv):
     parser.add_argument(
         "-e",
         "--epochs",
-        default=100,
+        default=200,
         type=int,
         help="Number of epochs (default: %(default)s)",
     )
     parser.add_argument(
         "-lr",
         "--learning-rate",
-        default=8e-4,
+        default=1e-4,
         type=float,
         help="Learning rate (default: %(default)s)",
     )
@@ -402,44 +402,6 @@ def parse_args(argv):
     return args
 
 
-def init_act_lsq(model, dataloader):
-    print('initializing act lsq')
-    device = next(model.parameters()).device
-    x = next(iter(dataloader)).to(device)
-
-    # x = y
-    for i in range(7):
-        if i in [0, 2, 4, 6]:
-            model.g_a[i].quan_a_fn.init_from_batch(x)
-        x = model.g_a[i](x)
-
-    # for hyper-prior model, h_a
-    z = x  # 여기서 x가 안 바뀌어야 할텐데...
-    for i in range(5):
-        if i in [0, 2, 4]:
-            model.h_a[i].quan_a_fn.init_from_batch(z)
-        z = model.h_a[i](z)
-
-    z, _ = model.entropy_bottleneck(z)
-    # x, _ = model.entropy_bottleneck(x)
-
-    # for hyper-prior model, h_s
-    for i in range(5):
-        if i in [0, 2, 4]:
-            model.h_s[i].quan_a_fn.init_from_batch(z)
-        z = model.h_s[i](z)
-
-    # for hyper-prior model, gaussian_params, x = y_hat
-    scales_hat, means_hat = z.chunk(2, 1)
-    x, _ = model.gaussian_conditional(x, scales_hat, means=means_hat)
-
-    # x = x_hat
-    for i in range(7):
-        if i in [0, 2, 4, 6]:
-            model.g_s[i].quan_a_fn.init_from_batch(x)
-        x = model.g_s[i](x)
-
-
 # essential args: -exp, -e, -lr, --lsq, -p, -q, --lambda
 
 
@@ -514,7 +476,7 @@ def main(argv):
         net = replace_module_by_names(net, modules_to_replace)
         net = net.to(device)
         logger_train.info(quant_config)
-        init_act_lsq(net, train_dataloader)
+        net.init_act(train_dataloader)
         if args.checkpoint is not None:
             net.load_state_dict(checkpoint['state_dict'])
         net = net.to(device)
