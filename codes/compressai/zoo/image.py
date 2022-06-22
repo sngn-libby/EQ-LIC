@@ -23,7 +23,8 @@ from compressai.models import (
     MeanScaleHyperprior,
     ScaleHyperprior,
     ICLR17Baseline,
-    AuxMeanScale
+    AuxMeanScale,
+    ResBlockMS,
 )
 
 from .pretrained import load_pretrained
@@ -37,7 +38,8 @@ __all__ = [
     "cheng2020_attn",
     "invcompress",
     "baseline",
-    "aux_mean"
+    "aux_mean",
+    "res_block",
 ]
 
 model_architectures = {
@@ -50,6 +52,7 @@ model_architectures = {
     "invcompress": InvCompress,
     "baseline": ICLR17Baseline,
     "aux-mean": AuxMeanScale,
+    "res-block": ResBlockMS,
 }
 
 root_url = "https://compressai.s3.amazonaws.com/models/v1"
@@ -215,6 +218,16 @@ cfgs = {
         6: (192, 320),
         7: (192, 320),
         8: (192, 320),
+    },
+    "res-block": {
+        1: (128, 192, 5),
+        2: (128, 192, 5),
+        3: (128, 192, 5),
+        4: (128, 192, 5),
+        5: (192, 320, 5),
+        6: (192, 320, 5),
+        7: (192, 320, 5),
+        8: (192, 320, 5),
     },
 }
 
@@ -416,3 +429,8 @@ def baseline(channels=128, quality=1, metric="mse", pretrained=False):
 
 def aux_mean(quality, metric="mse", pretrained=False, progress=True, **kwargs):
     return _load_model("aux-mean", metric, quality, pretrained, progress, **kwargs)
+
+
+def res_block(quality, metric="mse", pretrained=False, progress=True, **kwargs):
+    return _load_model("res-block", metric, quality, pretrained, progress, **kwargs)
+

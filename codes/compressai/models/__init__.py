@@ -17,3 +17,4 @@ from .waseda import *
 from .ours import *
 from .iclr17_baseline import ICLR17Baseline
 from .auxi import AuxMeanScale
+from .resblock import ResBlockMS
