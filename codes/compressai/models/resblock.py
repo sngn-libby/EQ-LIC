@@ -13,7 +13,7 @@ class ResBottleneck(nn.Module):
         self.bottleneck = nn.Sequential(
             nn.Conv2d(N, N//2, 1),
             nn.ReLU(),
-            nn.Conv2d(N//2, N//2, 3),
+            nn.Conv2d(N//2, N//2, 3, padding=1),
             nn.ReLU(),
             nn.Conv2d(N//2, N, 1),
         )
@@ -28,7 +28,7 @@ class ResBlocks(nn.Sequential):
         body = []
         for i in range(res_blocks):
             body.append(ResBottleneck(N))
-        super(ResBlocks, self).__init__(body)
+        super(ResBlocks, self).__init__(*body)
 
 
 class ResBlockMS(MeanScaleHyperprior):
