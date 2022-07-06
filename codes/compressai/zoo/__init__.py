@@ -25,4 +25,5 @@ models = {
     "baseline": baseline,
     "aux-mean": aux_mean,
     "res-block": res_block,
+    "act-function": act_function,
 }

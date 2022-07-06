@@ -25,6 +25,7 @@ from compressai.models import (
     ICLR17Baseline,
     AuxMeanScale,
     ResBlockMS,
+    ActFunctionMS,
 )
 
 from .pretrained import load_pretrained
@@ -40,6 +41,7 @@ __all__ = [
     "baseline",
     "aux_mean",
     "res_block",
+    "act_function"
 ]
 
 model_architectures = {
@@ -53,6 +55,7 @@ model_architectures = {
     "baseline": ICLR17Baseline,
     "aux-mean": AuxMeanScale,
     "res-block": ResBlockMS,
+    "act-function": ActFunctionMS,
 }
 
 root_url = "https://compressai.s3.amazonaws.com/models/v1"
@@ -228,6 +231,16 @@ cfgs = {
         6: (192, 320, 5),
         7: (192, 320, 5),
         8: (192, 320, 5),
+    },
+    "act-function": {
+        1: (128, 192),
+        2: (128, 192),
+        3: (128, 192),
+        4: (128, 192),
+        5: (192, 320),
+        6: (192, 320),
+        7: (192, 320),
+        8: (192, 320),
     },
 }
 
@@ -433,4 +446,7 @@ def aux_mean(quality, metric="mse", pretrained=False, progress=True, **kwargs):
 
 def res_block(quality, metric="mse", pretrained=False, progress=True, **kwargs):
     return _load_model("res-block", metric, quality, pretrained, progress, **kwargs)
+
+def act_function(quality, metric="mse", pretrained=False, progress=True, **kwargs):
+    return _load_model("act-function", metric, quality, pretrained, progress, **kwargs)
 

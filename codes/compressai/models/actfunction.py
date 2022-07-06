@@ -4,12 +4,12 @@ import torch.nn.functional as F
 
 from compressai.entropy_models import EntropyBottleneck, GaussianConditional
 from compressai.layers import GDN, MaskedConv2d
-from . import ScaleHyperprior
+from . import MeanScaleHyperprior
 
 from .utils import conv, deconv, update_registered_buffers
 
 
-class MeanScaleHyperprior(ScaleHyperprior):
+class ActFunctionMS(MeanScaleHyperprior):
     r"""Scale Hyperprior with non zero-mean Gaussian conditionals from D.
     Minnen, J. Balle, G.D. Toderici: `"Joint Autoregressive and Hierarchical
     Priors for Learned Image Compression" <https://arxiv.org/abs/1809.02736>`_,
@@ -26,21 +26,21 @@ class MeanScaleHyperprior(ScaleHyperprior):
 
         self.g_a = nn.Sequential(
             conv(3, N),
-            GDN(N),
+            nn.ReLU6(),
             conv(N, N),
-            GDN(N),
+            nn.ReLU6(),
             conv(N, N),
-            GDN(N),
+            nn.ReLU6(),
             conv(N, M),
         )
 
         self.g_s = nn.Sequential(
             deconv(M, N),
-            GDN(N, inverse=True),
+            nn.ReLU6(),
             deconv(N, N),
-            GDN(N, inverse=True),
+            nn.ReLU6(),
             deconv(N, N),
-            GDN(N, inverse=True),
+            nn.ReLU6(),
             deconv(N, 3),
         )
 
