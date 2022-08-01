@@ -18,6 +18,7 @@ def round_pass(x):
 class LsqQuan(Quantizer):
     def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
         super().__init__(bit)
+        self.init_state = True
 
         if all_positive:
             assert not symmetric, "Positive quantization cannot be symmetric"
@@ -37,21 +38,28 @@ class LsqQuan(Quantizer):
         self.per_channel = per_channel
         self.s = t.nn.Parameter(t.FloatTensor(1).squeeze() / (self.thd_pos ** 0.5))
 
-    def init_from(self, x, *args, **kwargs):
+    def init_weight(self, x, *args, **kwargs):
         if self.per_channel:
             self.s = t.nn.Parameter(
                 x.detach().abs().mean(dim=(1, 2, 3), keepdim=True) * 2 / (self.thd_pos ** 0.5))
         else:
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
-    def init_from_batch(self, x, *args, **kwargs):
+    def init_activation(self, x, *args, **kwargs):
         if self.per_channel:
             self.s = t.nn.Parameter(
                 x.detach().abs().mean(dim=(0, 2, 3), keepdim=True) * 2 / (self.thd_pos ** 0.5))
         else:
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
-    def forward(self, x):
+    def forward(self, x, is_weight=False):
+        if self.init_state:
+            if is_weight:
+                self.init_weight(x)
+            else:
+                self.init_activation(x)
+            self.init_state = False
+
         if self.per_channel:
             s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         else:

@@ -5,7 +5,7 @@ class Quantizer(t.nn.Module):
     def __init__(self, bit):
         super().__init__()
 
-    def init_from(self, x, *args, **kwargs):
+    def init_weight(self, x, *args, **kwargs):
         pass
 
     def forward(self, x):

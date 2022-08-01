@@ -316,7 +316,7 @@ def parse_args(argv):
     parser.add_argument(
         "-e",
         "--epochs",
-        default=850,
+        default=500,
         type=int,
         help="Number of epochs (default: %(default)s)",
     )
@@ -398,6 +398,7 @@ def parse_args(argv):
         "-p",
         "--pretrain", action="store_true"
     )
+    parser.add_argument("-b,", "--bit", type=int, default=8, help="Bit-width")
     args = parser.parse_args(argv)
     return args
 
@@ -455,7 +456,7 @@ def main(argv):
         pin_memory=True,
     )
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
+    # os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
 
     if args.pretrain:
@@ -471,12 +472,16 @@ def main(argv):
     net = net.to(device)
 
     if args.lsq:
-        quant_config = config.get_config('configs/quant_config.yaml')
+        if args.bit == 8:
+            quant_config = config.get_config('configs/8bit.yaml')
+        elif args.bit == 4:
+            quant_config = config.get_config('configs/4bit.yaml')
+        elif args.bit == 2:
+            quant_config = config.get_config('configs/2bit.yaml')
         modules_to_replace = find_modules_to_quantize(net, quant_config.quan)
         net = replace_module_by_names(net, modules_to_replace)
         net = net.to(device)
         logger_train.info(quant_config)
-        net.init_act(train_dataloader)
         if args.checkpoint is not None:
             net.load_state_dict(checkpoint['state_dict'])
         net = net.to(device)
@@ -490,7 +495,7 @@ def main(argv):
     optimizer, aux_optimizer = configure_optimizers(net, args)
     # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     # lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.3, patience=20, verbose=True)
-    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[800, ], gamma=0.1)
+    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450, ], gamma=0.1)
     # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.25)
     criterion = RateDistortionLoss(lmbda=args.lmbda, metrics=args.metrics)
 

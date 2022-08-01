@@ -38,7 +38,7 @@ class OffsetLSQ(Quantizer):
         self.s = t.nn.Parameter(t.ones(1) / (self.thd_pos ** 0.5))
         self.b = t.nn.Parameter(t.ones(1))
 
-    def init_from(self, x, *args, **kwargs):
+    def init_weight(self, x, *args, **kwargs):
         if self.per_channel:
             self.s = t.nn.Parameter(
                 x.detach().abs().mean(dim=(1, 2, 3), keepdim=True) * 2 / (self.thd_pos ** 0.5))

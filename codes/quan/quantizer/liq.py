@@ -23,7 +23,7 @@ class LiqQuan(Quantizer):
         self.per_channel = per_channel
         self.interval = t.nn.Parameter(t.ones(1))
 
-    def init_from(self, x, *args, **kwargs):
+    def init_weight(self, x, *args, **kwargs):
         if self.per_channel:
             self.interval = t.nn.Parameter(
                 x.detach().abs().mean(dim=(1, 2, 3), keepdim=True))

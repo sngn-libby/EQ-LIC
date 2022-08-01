@@ -349,43 +349,6 @@ class MeanScaleHyperprior(ScaleHyperprior):
             "likelihoods": {"y": y_likelihoods, "z": z_likelihoods},
         }
 
-    def init_act(self, dataloader):
-        print('initializing act lsq')
-        device = next(self.parameters()).device
-        x = next(iter(dataloader)).to(device)
-
-        # x = y
-        for i in range(7):
-            if i in [0, 2, 4, 6]:
-                self.g_a[i].quan_a_fn.init_from_batch(x)
-            x = self.g_a[i](x)
-
-        # for hyper-prior model, h_a
-        z = x  # 여기서 x가 안 바뀌어야 할텐데...
-        for i in range(5):
-            if i in [0, 2, 4]:
-                self.h_a[i].quan_a_fn.init_from_batch(z)
-            z = self.h_a[i](z)
-
-        z, _ = self.entropy_bottleneck(z)
-        # x, _ = model.entropy_bottleneck(x)
-
-        # for hyper-prior model, h_s
-        for i in range(5):
-            if i in [0, 2, 4]:
-                self.h_s[i].quan_a_fn.init_from_batch(z)
-            z = self.h_s[i](z)
-
-        # for hyper-prior model, gaussian_params, x = y_hat
-        scales_hat, means_hat = z.chunk(2, 1)
-        x, _ = self.gaussian_conditional(x, scales_hat, means=means_hat)
-
-        # x = x_hat
-        for i in range(7):
-            if i in [0, 2, 4, 6]:
-                self.g_s[i].quan_a_fn.init_from_batch(x)
-            x = self.g_s[i](x)
-
     def compress(self, x):
         y = self.g_a(x)
         z = self.h_a(y)
