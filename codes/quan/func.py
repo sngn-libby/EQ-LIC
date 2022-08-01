@@ -143,9 +143,9 @@ class QuanGDN(GDN):
 
 
 QuanModuleMapping = {
-    # t.nn.Conv2d: QuanConv2d,
-    # t.nn.Linear: QuanLinear,
-    # t.nn.ConvTranspose2d: QuanConvTranspose2d,
-    # MaskedConv2d: QuanMaskedConv2d,
-    GDN: QuanGDN,
+    t.nn.Conv2d: QuanConv2d,
+    t.nn.Linear: QuanLinear,
+    t.nn.ConvTranspose2d: QuanConvTranspose2d,
+    MaskedConv2d: QuanMaskedConv2d,
+    # GDN: QuanGDN,
 }
