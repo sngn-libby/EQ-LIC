@@ -15,7 +15,7 @@ def round_pass(x):
     return (y - y_grad).detach() + y_grad
 
 
-class LsqQuan(Quantizer):
+class LsqWeight(Quantizer):
     def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
         super().__init__(bit)
         self.init_state = True
@@ -45,6 +45,43 @@ class LsqQuan(Quantizer):
         else:
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
+    def forward(self, x):
+        if self.init_state:
+            self.init_weight(x)
+            self.init_state = False
+
+        s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
+        s_scale = grad_scale(self.s, s_grad_scale) # s와 같은데 grad scale 적용된 버전
+        x = x / s_scale
+        x = t.clamp(x, self.thd_neg, self.thd_pos)
+        x = round_pass(x)
+        x = x * s_scale
+        return x
+
+
+class LsqAct(Quantizer):
+    def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
+        super().__init__(bit)
+        self.init_state = True
+
+        if all_positive:
+            assert not symmetric, "Positive quantization cannot be symmetric"
+            # unsigned activation is quantized to [0, 2^b-1]
+            self.thd_neg = 0
+            self.thd_pos = 2 ** bit - 1
+        else:
+            if symmetric:
+                # signed weight/activation is quantized to [-2^(b-1)+1, 2^(b-1)-1]
+                self.thd_neg = - 2 ** (bit - 1) + 1
+                self.thd_pos = 2 ** (bit - 1) - 1
+            else:
+                # signed weight/activation is quantized to [-2^(b-1), 2^(b-1)-1]
+                self.thd_neg = - 2 ** (bit - 1)
+                self.thd_pos = 2 ** (bit - 1) - 1
+
+        self.per_channel = per_channel
+        self.s = t.nn.Parameter(t.FloatTensor(1).squeeze() / (self.thd_pos ** 0.5))
+
     def init_activation(self, x, *args, **kwargs):
         if self.per_channel:
             self.s = t.nn.Parameter(
@@ -52,19 +89,13 @@ class LsqQuan(Quantizer):
         else:
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
-    def forward(self, x, is_weight=False):
+    def forward(self, x):
         if self.init_state:
-            if is_weight:
-                self.init_weight(x)
-            else:
-                self.init_activation(x)
+            self.init_activation(x)
             self.init_state = False
 
-        if self.per_channel:
-            s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-        else:
-            s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-        s_scale = grad_scale(self.s, s_grad_scale) # s와 같은데 grad scale 적용된 버전
+        s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
+        s_scale = grad_scale(self.s, s_grad_scale)  # s와 같은데 grad scale 적용된 버전
         x = x / s_scale
         x = t.clamp(x, self.thd_neg, self.thd_pos)
         x = round_pass(x)

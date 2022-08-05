@@ -25,7 +25,7 @@ class QuanConv2d(t.nn.Conv2d):
             self.bias = t.nn.Parameter(m.bias.detach())
 
     def forward(self, x):
-        quantized_weight = self.quan_w_fn(self.weight, is_weight=True)
+        quantized_weight = self.quan_w_fn(self.weight)
         quantized_act = self.quan_a_fn(x)
         return self._conv_forward(quantized_act, quantized_weight, self.bias)
 
@@ -56,7 +56,7 @@ class QuanMaskedConv2d(t.nn.Conv2d):
 
     def forward(self, x):
         self.weight.data *= self.mask
-        quantized_weight = self.quan_w_fn(self.weight, is_weight=True)
+        quantized_weight = self.quan_w_fn(self.weight)
         quantized_act = self.quan_a_fn(x)
         return self._conv_forward(quantized_act, quantized_weight, self.bias)
 
@@ -75,7 +75,7 @@ class QuanLinear(t.nn.Linear):
             self.bias = t.nn.Parameter(m.bias.detach())
 
     def forward(self, x):
-        quantized_weight = self.quan_w_fn(self.weight, is_weight=True)
+        quantized_weight = self.quan_w_fn(self.weight)
         quantized_act = self.quan_a_fn(x)
         return t.nn.functional.linear(quantized_act, quantized_weight, self.bias)
 
@@ -102,7 +102,7 @@ class QuanConvTranspose2d(t.nn.ConvTranspose2d):
 
     def forward(self, x):
         assert isinstance(self.padding, tuple)
-        quantized_weight = self.quan_w_fn(self.weight, is_weight=True)
+        quantized_weight = self.quan_w_fn(self.weight)
         quantized_act = self.quan_a_fn(x)
         return F.conv_transpose2d(quantized_act, quantized_weight, self.bias, self.stride, self.padding,
                                   self.output_padding, self.groups, self.dilation)
@@ -128,7 +128,7 @@ class QuanGDN(GDN):
         beta = self.beta_reparam(self.beta)
         gamma = self.gamma_reparam(self.gamma)
         gamma = gamma.reshape(C, C, 1, 1)
-        quantized_weight = self.quan_w_fn(gamma, is_weight=True)
+        quantized_weight = self.quan_w_fn(gamma)
         quantized_act = self.quan_a_fn(x ** 2)
         norm = F.conv2d(quantized_act, quantized_weight, beta)
 

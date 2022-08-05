@@ -166,6 +166,7 @@ def train_one_epoch(
 ):
     model.train()
     device = next(model.parameters()).device
+    model.apply(lambda m: setattr(m, 'epoch', epoch))
 
     for i, d in enumerate(train_dataloader):
         d = d.to(device)

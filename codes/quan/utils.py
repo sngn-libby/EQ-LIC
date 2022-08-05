@@ -12,8 +12,10 @@ def quantizer(default_cfg, this_cfg=None):
 
     if target_cfg['bit'] is None or target_cfg['bit'] == 0:
         q = IdentityQuan
-    elif target_cfg['mode'] == 'lsq':
-        q = LsqQuan
+    elif target_cfg['mode'] == 'lsq_weight':
+        q = LsqWeight
+    elif target_cfg['mode'] == 'lsq_act':
+        q = LsqAct
     elif target_cfg['mode'] == 'ste_lsq':
         q = STELsq
     elif target_cfg['mode'] == 'offset_lsq':
@@ -22,6 +24,10 @@ def quantizer(default_cfg, this_cfg=None):
         q = OffsetLSQPlus
     elif target_cfg['mode'] == 'liq':
         q = LiqQuan
+    elif target_cfg['mode'] == 'pams_weight':
+        q = PAMSWeight
+    elif target_cfg['mode'] == 'pams_act':
+        q = PAMSAct
     else:
         raise ValueError('Cannot find quantizer `%s`', target_cfg['mode'])
 
