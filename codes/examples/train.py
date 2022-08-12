@@ -370,6 +370,11 @@ def parse_args(argv):
         help="Auxiliary loss learning rate (default: %(default)s)",
     )
     parser.add_argument(
+        "--config",
+        type=str,
+        help="quantization config file dir"
+    )
+    parser.add_argument(
         "--patch-size",
         type=int,
         nargs=2,
@@ -399,7 +404,6 @@ def parse_args(argv):
         "-p",
         "--pretrain", action="store_true"
     )
-    parser.add_argument("-b,", "--bit", type=int, default=8, help="Bit-width")
     args = parser.parse_args(argv)
     return args
 
@@ -473,12 +477,7 @@ def main(argv):
     net = net.to(device)
 
     if args.lsq:
-        if args.bit == 8:
-            quant_config = config.get_config('configs/8bit.yaml')
-        elif args.bit == 4:
-            quant_config = config.get_config('configs/4bit.yaml')
-        elif args.bit == 2:
-            quant_config = config.get_config('configs/2bit.yaml')
+        quant_config = config.get_config(args.config)
         modules_to_replace = find_modules_to_quantize(net, quant_config.quan)
         net = replace_module_by_names(net, modules_to_replace)
         net = net.to(device)
