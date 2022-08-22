@@ -290,10 +290,11 @@ def test_epoch(epoch, test_dataloader, model, criterion, save_dir, logger_val, t
 
 
 def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
-    torch.save(state, filename)
-    if is_best:
-        dest_filename = filename.replace(filename.split('/')[-1], "checkpoint_best_loss.pth.tar")
-        shutil.copyfile(filename, dest_filename)
+    torch.save(state, "checkpoint_best_loss.pth.tar")
+    # torch.save(state, filename)
+    # if is_best:
+    #     dest_filename = filename.replace(filename.split('/')[-1], "checkpoint_best_loss.pth.tar")
+    #     shutil.copyfile(filename, dest_filename)
 
 
 def parse_args(argv):
