@@ -252,11 +252,11 @@ def test_epoch(epoch, test_dataloader, model, criterion, save_dir, logger_val, t
             psnr.update(p)
             ms_ssim.update(m)
 
-            if i % 100 == 1:
-                if not os.path.exists(save_dir):
-                    os.makedirs(save_dir)
-                rec.save(os.path.join(save_dir, '%03d_rec.png' % i))
-                img.save(os.path.join(save_dir, '%03d_gt.png' % i))
+            # if i % 100 == 1:
+            #     if not os.path.exists(save_dir):
+            #         os.makedirs(save_dir)
+            #     rec.save(os.path.join(save_dir, '%03d_rec.png' % i))
+            #     img.save(os.path.join(save_dir, '%03d_gt.png' % i))
 
     tb_logger.add_scalar('{}'.format('[val]: loss'), loss.avg, epoch + 1)
     tb_logger.add_scalar('{}'.format('[val]: bpp_loss'), bpp_loss.avg, epoch + 1)
