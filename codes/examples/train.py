@@ -469,23 +469,22 @@ def main(argv):
         net = models[args.model](quality=args.quality, pretrained=True)
     else:
         net = models[args.model](quality=args.quality)
-    if args.checkpoint is not None:
-        checkpoint = torch.load(args.checkpoint)
-        if not args.lsq:
-            net = architectures[args.model].from_state_dict(checkpoint['state_dict'])
-            net.update()
-
-    net = net.to(device)
 
     if args.lsq:
         quant_config = config.get_config(args.config)
         modules_to_replace = find_modules_to_quantize(net, quant_config.quan)
         net = replace_module_by_names(net, modules_to_replace)
-        net = net.to(device)
         logger_train.info(quant_config)
-        if args.checkpoint is not None:
+
+    if args.checkpoint is not None:
+        checkpoint = torch.load(args.checkpoint)
+        if not args.lsq:
+            net = architectures[args.model].from_state_dict(checkpoint['state_dict'])
+            net.update()
+        else:
             net.load_state_dict(checkpoint['state_dict'])
-        net = net.to(device)
+
+    net = net.to(device)
 
     logger_train.info(args)
     logger_train.info(net)
