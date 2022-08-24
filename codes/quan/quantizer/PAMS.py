@@ -46,7 +46,7 @@ class PAMSAct(torch.nn.Module):
         self.alpha = torch.nn.Parameter(torch.Tensor(1))
         self.ema_epoch = ema_epoch
         self.epoch = 0
-        self.register_buffer('max_val', torch.ones(1).unsqueeze(0))
+        self.register_buffer('max_val', torch.ones(1).squeeze(0))
         self.reset_parameter()
 
     def reset_parameter(self):
