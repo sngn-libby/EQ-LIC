@@ -178,6 +178,7 @@ def load_checkpoint(arch: str, checkpoint_path: str) -> nn.Module:
 def load_lsq_checkpoint(arch: str, quality: int, checkpoint_path: str,) -> nn.Module:
     model = pretrained_models[arch](quality=quality)
     quant_config = config.get_config('configs/quant_config.yaml')
+    quant_config = config.get_config('configs/base_2bit_lsq.yaml')
     modules_to_replace = find_modules_to_quantize(model, quant_config.quan)
     model = replace_module_by_names(model, modules_to_replace)
     if quant_config.quan.act.per_channel:

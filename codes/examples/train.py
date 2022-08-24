@@ -503,9 +503,6 @@ def main(argv):
         optimizer.load_state_dict(checkpoint['optimizer'])
         aux_optimizer.load_state_dict(checkpoint['aux_optimizer'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-        # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450, 550], gamma=0.1)
-        # lr_scheduler._step_count = checkpoint['lr_scheduler']['_step_count']
-        # lr_scheduler.last_epoch = checkpoint['lr_scheduler']['last_epoch']
         print(lr_scheduler.state_dict())
         start_epoch = checkpoint['epoch']
         best_loss = checkpoint['loss']
