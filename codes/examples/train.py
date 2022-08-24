@@ -318,7 +318,7 @@ def parse_args(argv):
     parser.add_argument(
         "-e",
         "--epochs",
-        default=500,
+        default=1000,
         type=int,
         help="Number of epochs (default: %(default)s)",
     )
@@ -495,14 +495,14 @@ def main(argv):
     optimizer, aux_optimizer = configure_optimizers(net, args)
     # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     # lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.3, patience=20, verbose=True)
-    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450, ], gamma=0.1)
+    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[900, ], gamma=0.1)
     # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.25)
     criterion = RateDistortionLoss(lmbda=args.lmbda, metrics=args.metrics)
 
     if args.checkpoint is not None:
         optimizer.load_state_dict(checkpoint['optimizer'])
         aux_optimizer.load_state_dict(checkpoint['aux_optimizer'])
-        lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        # lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         print(lr_scheduler.state_dict())
         start_epoch = checkpoint['epoch']
         best_loss = checkpoint['loss']
