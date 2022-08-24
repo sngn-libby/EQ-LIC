@@ -181,15 +181,6 @@ def load_lsq_checkpoint(arch: str, quality: int, checkpoint_path: str,) -> nn.Mo
     quant_config = config.get_config('configs/base_2bit_lsq.yaml')
     modules_to_replace = find_modules_to_quantize(model, quant_config.quan)
     model = replace_module_by_names(model, modules_to_replace)
-    if quant_config.quan.act.per_channel:
-        x = torch.ones([1, 128, 1, 1])
-        for i in [0, 2, 4, 6]:
-            model.g_a[i].quan_a_fn.init_from_batch(x)
-            model.g_s[i].quan_a_fn.init_from_batch(x)
-            # model.g_a[i].quan_a_fn = IdentityQuan
-            # model.g_s[i].quan_a_fn = IdentityQuan
-        model.g_a[0].quan_a_fn.init_from_batch(torch.ones([1, 3, 1, 1]))
-        model.g_s[0].quan_a_fn.init_from_batch(torch.ones([1, 192, 1, 1]))
     model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
     # for i in [0, 2, 4, 6]:
     #     model.g_a[i].quan_a_fn = IdentityQuan
