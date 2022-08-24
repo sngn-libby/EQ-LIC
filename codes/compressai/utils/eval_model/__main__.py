@@ -177,8 +177,7 @@ def load_checkpoint(arch: str, checkpoint_path: str) -> nn.Module:
 
 def load_lsq_checkpoint(arch: str, quality: int, checkpoint_path: str,) -> nn.Module:
     model = pretrained_models[arch](quality=quality)
-    # quant_config = config.get_config('configs/quant_config.yaml')
-    quant_config = config.get_config('configs/base_8bit_lsq.yaml')
+    quant_config = config.get_config('configs/config.yaml')
     modules_to_replace = find_modules_to_quantize(model, quant_config.quan)
     model = replace_module_by_names(model, modules_to_replace)
     model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
@@ -308,7 +307,11 @@ def setup_args():
         type=int,
         default=1,
     )
-
+    checkpoint_parser.add_argument(
+        "--config",
+        type=str,
+        help="quantization config file dir"
+    )
     return parser
 
 
