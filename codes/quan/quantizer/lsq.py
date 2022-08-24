@@ -18,7 +18,7 @@ def round_pass(x):
 class LsqWeight(Quantizer):
     def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
         super().__init__(bit)
-        self.init_state = True
+        self.epoch = 0
 
         if all_positive:
             assert not symmetric, "Positive quantization cannot be symmetric"
@@ -46,9 +46,8 @@ class LsqWeight(Quantizer):
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
     def forward(self, x):
-        if self.init_state:
+        if self.epoch == 0 and self.training:
             self.init_weight(x)
-            self.init_state = False
 
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         s_scale = grad_scale(self.s, s_grad_scale) # s와 같은데 grad scale 적용된 버전
@@ -62,7 +61,7 @@ class LsqWeight(Quantizer):
 class LsqAct(Quantizer):
     def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
         super().__init__(bit)
-        self.init_state = True
+        self.epoch = 0
 
         if all_positive:
             assert not symmetric, "Positive quantization cannot be symmetric"
@@ -90,9 +89,8 @@ class LsqAct(Quantizer):
             self.s = t.nn.Parameter(x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5))
 
     def forward(self, x):
-        if self.init_state:
+        if self.epoch == 0 and self.training:
             self.init_activation(x)
-            self.init_state = False
 
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         s_scale = grad_scale(self.s, s_grad_scale)  # s와 같은데 grad scale 적용된 버전
