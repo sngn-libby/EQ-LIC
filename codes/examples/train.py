@@ -203,7 +203,7 @@ def train_one_epoch(
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'Loss: {out_criterion["loss"].item():.4f} | '
                     f'MSE loss: {out_criterion["mse_loss"].item():.4f} | '
-                    f'Bpp loss: {out_criterion["bpp_loss"].item():.2f} | '
+                    f'Bpp loss: {out_criterion["bpp_loss"].item():.4f} | '
                     f"Aux loss: {aux_loss.item():.2f}"
                 )
             else:
@@ -213,7 +213,7 @@ def train_one_epoch(
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'Loss: {out_criterion["loss"].item():.4f} | '
                     f'MS-SSIM loss: {out_criterion["ms_ssim_loss"].item():.4f} | '
-                    f'Bpp loss: {out_criterion["bpp_loss"].item():.2f} | '
+                    f'Bpp loss: {out_criterion["bpp_loss"].item():.4f} | '
                     f"Aux loss: {aux_loss.item():.2f}"
                 )
 
@@ -268,7 +268,7 @@ def test_epoch(epoch, test_dataloader, model, criterion, save_dir, logger_val, t
             f"Test epoch {epoch}: Average losses: "
             f"Loss: {loss.avg:.4f} | "
             f"MSE loss: {mse_loss.avg:.4f} | "
-            f"Bpp loss: {bpp_loss.avg:.2f} | "
+            f"Bpp loss: {bpp_loss.avg:.4f} | "
             f"Aux loss: {aux_loss.avg:.2f} | "
             f"PSNR: {psnr.avg:.6f} | "
             f"MS-SSIM: {ms_ssim.avg:.6f}"
