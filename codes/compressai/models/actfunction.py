@@ -9,18 +9,52 @@ from . import MeanScaleHyperprior
 from .utils import conv, deconv, update_registered_buffers
 
 
-class ActFunctionMS(MeanScaleHyperprior):
-    r"""Scale Hyperprior with non zero-mean Gaussian conditionals from D.
-    Minnen, J. Balle, G.D. Toderici: `"Joint Autoregressive and Hierarchical
-    Priors for Learned Image Compression" <https://arxiv.org/abs/1809.02736>`_,
-    Adv. in Neural Information Processing Systems 31 (NeurIPS 2018).
+class MSReLU(MeanScaleHyperprior):
+    def __init__(self, N, M, **kwargs):
+        super().__init__(N, M, **kwargs)
 
-    Args:
-        N (int): Number of channels
-        M (int): Number of channels in the expansion layers (last layer of the
-            encoder and last layer of the hyperprior decoder)
-    """
+        self.g_a = nn.Sequential(
+            conv(3, N),
+            nn.ReLU(),
+            conv(N, N),
+            nn.ReLU(),
+            conv(N, N),
+            nn.ReLU(),
+            conv(N, M),
+        )
 
+        self.g_s = nn.Sequential(
+            deconv(M, N),
+            nn.ReLU(),
+            deconv(N, N),
+            nn.ReLU(),
+            deconv(N, N),
+            nn.ReLU(),
+            deconv(N, 3),
+        )
+
+        self.h_a = nn.Sequential(
+            conv(M, N, stride=1, kernel_size=3),
+            nn.ReLU(),
+            conv(N, N),
+            nn.ReLU(),
+            conv(N, N),
+        )
+
+        self.h_s = nn.Sequential(
+            deconv(N, M),
+            nn.ReLU(),
+            deconv(M, M * 3 // 2),
+            nn.ReLU(),
+            conv(M * 3 // 2, M * 2, stride=1, kernel_size=3),
+        )
+
+        self.gaussian_conditional = GaussianConditional(None)
+        self.N = int(N)
+        self.M = int(M)
+
+
+class MSReLU6(MeanScaleHyperprior):
     def __init__(self, N, M, **kwargs):
         super().__init__(N, M, **kwargs)
 
@@ -46,17 +80,17 @@ class ActFunctionMS(MeanScaleHyperprior):
 
         self.h_a = nn.Sequential(
             conv(M, N, stride=1, kernel_size=3),
-            nn.LeakyReLU(inplace=True),
+            nn.ReLU6(),
             conv(N, N),
-            nn.LeakyReLU(inplace=True),
+            nn.ReLU6(),
             conv(N, N),
         )
 
         self.h_s = nn.Sequential(
             deconv(N, M),
-            nn.LeakyReLU(inplace=True),
+            nn.ReLU6(),
             deconv(M, M * 3 // 2),
-            nn.LeakyReLU(inplace=True),
+            nn.ReLU6(),
             conv(M * 3 // 2, M * 2, stride=1, kernel_size=3),
         )
 
@@ -65,42 +99,47 @@ class ActFunctionMS(MeanScaleHyperprior):
         self.M = int(M)
 
 
+class MSTanh(MeanScaleHyperprior):
+    def __init__(self, N, M, **kwargs):
+        super().__init__(N, M, **kwargs)
 
-    def forward(self, x):
-        y = self.g_a(x)
-        z = self.h_a(y)
-        z_hat, z_likelihoods = self.entropy_bottleneck(z)
-        gaussian_params = self.h_s(z_hat)
-        scales_hat, means_hat = gaussian_params.chunk(2, 1)
-        y_hat, y_likelihoods = self.gaussian_conditional(y, scales_hat, means=means_hat)
-        x_hat = self.g_s(y_hat)
-
-        return {
-            "x_hat": x_hat,
-            "likelihoods": {"y": y_likelihoods, "z": z_likelihoods},
-        }
-
-    def compress(self, x):
-        y = self.g_a(x)
-        z = self.h_a(y)
-
-        z_strings = self.entropy_bottleneck.compress(z)
-        z_hat = self.entropy_bottleneck.decompress(z_strings, z.size()[-2:])
-
-        gaussian_params = self.h_s(z_hat)
-        scales_hat, means_hat = gaussian_params.chunk(2, 1)
-        indexes = self.gaussian_conditional.build_indexes(scales_hat)
-        y_strings = self.gaussian_conditional.compress(y, indexes, means=means_hat)
-        return {"strings": [y_strings, z_strings], "shape": z.size()[-2:]}
-
-    def decompress(self, strings, shape):
-        assert isinstance(strings, list) and len(strings) == 2
-        z_hat = self.entropy_bottleneck.decompress(strings[1], shape)
-        gaussian_params = self.h_s(z_hat)
-        scales_hat, means_hat = gaussian_params.chunk(2, 1)
-        indexes = self.gaussian_conditional.build_indexes(scales_hat)
-        y_hat = self.gaussian_conditional.decompress(
-            strings[0], indexes, means=means_hat
+        self.g_a = nn.Sequential(
+            conv(3, N),
+            nn.Tanh(),
+            conv(N, N),
+            nn.Tanh(),
+            conv(N, N),
+            nn.Tanh(),
+            conv(N, M),
         )
-        x_hat = self.g_s(y_hat).clamp_(0, 1)
-        return {"x_hat": x_hat}
+
+        self.g_s = nn.Sequential(
+            deconv(M, N),
+            nn.Tanh(),
+            deconv(N, N),
+            nn.Tanh(),
+            deconv(N, N),
+            nn.Tanh(),
+            deconv(N, 3),
+        )
+
+        self.h_a = nn.Sequential(
+            conv(M, N, stride=1, kernel_size=3),
+            nn.Tanh(),
+            conv(N, N),
+            nn.Tanh(),
+            conv(N, N),
+        )
+
+        self.h_s = nn.Sequential(
+            deconv(N, M),
+            nn.Tanh(),
+            deconv(M, M * 3 // 2),
+            nn.Tanh(),
+            conv(M * 3 // 2, M * 2, stride=1, kernel_size=3),
+        )
+
+        self.gaussian_conditional = GaussianConditional(None)
+        self.N = int(N)
+        self.M = int(M)
+

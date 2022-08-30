@@ -25,7 +25,9 @@ from compressai.models import (
     ICLR17Baseline,
     AuxMeanScale,
     ResBlockMS,
-    ActFunctionMS,
+    MSReLU,
+    MSReLU6,
+    MSTanh,
 )
 
 from .pretrained import load_pretrained
@@ -41,7 +43,9 @@ __all__ = [
     "baseline",
     "aux_mean",
     "res_block",
-    "act_function"
+    "ms_relu",
+    "ms_relu6",
+    "ms_tanh",
 ]
 
 model_architectures = {
@@ -55,7 +59,9 @@ model_architectures = {
     "baseline": ICLR17Baseline,
     "aux-mean": AuxMeanScale,
     "res-block": ResBlockMS,
-    "act-function": ActFunctionMS,
+    "ms-relu": MSReLU,
+    "ms-relu6": MSReLU6,
+    "ms-tanh": MSTanh,
 }
 
 root_url = "https://compressai.s3.amazonaws.com/models/v1"
@@ -232,7 +238,27 @@ cfgs = {
         7: (192, 320, 5),
         8: (192, 320, 5),
     },
-    "act-function": {
+    "ms-relu": {
+        1: (128, 192),
+        2: (128, 192),
+        3: (128, 192),
+        4: (128, 192),
+        5: (192, 320),
+        6: (192, 320),
+        7: (192, 320),
+        8: (192, 320),
+    },
+    "ms-relu6": {
+        1: (128, 192),
+        2: (128, 192),
+        3: (128, 192),
+        4: (128, 192),
+        5: (192, 320),
+        6: (192, 320),
+        7: (192, 320),
+        8: (192, 320),
+    },
+    "ms-tanh": {
         1: (128, 192),
         2: (128, 192),
         3: (128, 192),
@@ -447,6 +473,14 @@ def aux_mean(quality, metric="mse", pretrained=False, progress=True, **kwargs):
 def res_block(quality, metric="mse", pretrained=False, progress=True, **kwargs):
     return _load_model("res-block", metric, quality, pretrained, progress, **kwargs)
 
-def act_function(quality, metric="mse", pretrained=False, progress=True, **kwargs):
-    return _load_model("act-function", metric, quality, pretrained, progress, **kwargs)
 
+def ms_relu(quality, metric="mse", pretrained=False, progress=True, **kwargs):
+    return _load_model("ms-relu", metric, quality, pretrained, progress, **kwargs)
+
+
+def ms_relu6(quality, metric="mse", pretrained=False, progress=True, **kwargs):
+    return _load_model("ms-relu6", metric, quality, pretrained, progress, **kwargs)
+
+
+def ms_tanh(quality, metric="mse", pretrained=False, progress=True, **kwargs):
+    return _load_model("ms-tanh", metric, quality, pretrained, progress, **kwargs)

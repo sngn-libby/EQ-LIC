@@ -25,5 +25,7 @@ models = {
     "baseline": baseline,
     "aux-mean": aux_mean,
     "res-block": res_block,
-    "act-function": act_function,
+    "ms-relu": ms_relu,
+    "ms-relu6": ms_relu6,
+    "ms-tanh": ms_tanh,
 }
