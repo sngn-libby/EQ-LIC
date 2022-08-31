@@ -49,10 +49,6 @@ class MSReLU(MeanScaleHyperprior):
             conv(M * 3 // 2, M * 2, stride=1, kernel_size=3),
         )
 
-        self.gaussian_conditional = GaussianConditional(None)
-        self.N = int(N)
-        self.M = int(M)
-
 
 class MSReLU6(MeanScaleHyperprior):
     def __init__(self, N, M, **kwargs):
@@ -78,26 +74,6 @@ class MSReLU6(MeanScaleHyperprior):
             deconv(N, 3),
         )
 
-        self.h_a = nn.Sequential(
-            conv(M, N, stride=1, kernel_size=3),
-            nn.ReLU6(),
-            conv(N, N),
-            nn.ReLU6(),
-            conv(N, N),
-        )
-
-        self.h_s = nn.Sequential(
-            deconv(N, M),
-            nn.ReLU6(),
-            deconv(M, M * 3 // 2),
-            nn.ReLU6(),
-            conv(M * 3 // 2, M * 2, stride=1, kernel_size=3),
-        )
-
-        self.gaussian_conditional = GaussianConditional(None)
-        self.N = int(N)
-        self.M = int(M)
-
 
 class MSTanh(MeanScaleHyperprior):
     def __init__(self, N, M, **kwargs):
@@ -122,24 +98,4 @@ class MSTanh(MeanScaleHyperprior):
             nn.Tanh(),
             deconv(N, 3),
         )
-
-        self.h_a = nn.Sequential(
-            conv(M, N, stride=1, kernel_size=3),
-            nn.Tanh(),
-            conv(N, N),
-            nn.Tanh(),
-            conv(N, N),
-        )
-
-        self.h_s = nn.Sequential(
-            deconv(N, M),
-            nn.Tanh(),
-            deconv(M, M * 3 // 2),
-            nn.Tanh(),
-            conv(M * 3 // 2, M * 2, stride=1, kernel_size=3),
-        )
-
-        self.gaussian_conditional = GaussianConditional(None)
-        self.N = int(N)
-        self.M = int(M)
 
