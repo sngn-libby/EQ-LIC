@@ -290,11 +290,11 @@ def test_epoch(epoch, test_dataloader, model, criterion, save_dir, logger_val, t
 
 
 def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
-    torch.save(state, "checkpoint_best_loss.pth.tar")
     # torch.save(state, filename)
-    # if is_best:
-    #     dest_filename = filename.replace(filename.split('/')[-1], "checkpoint_best_loss.pth.tar")
-    #     shutil.copyfile(filename, dest_filename)
+    if is_best:
+        dest_filename = filename.replace(filename.split('/')[-1], "checkpoint_best_loss.pth.tar")
+        torch.save(state, dest_filename)
+        # shutil.copyfile(filename, dest_filename)
 
 
 def parse_args(argv):
@@ -402,6 +402,13 @@ def parse_args(argv):
         help="pretrained model path"
     )
     parser.add_argument(
+        "-b",
+        "--basepoint",
+        default=None,
+        type=str,
+        help="baseline (fp) model path for quantized model"
+    )
+    parser.add_argument(
         "-p",
         "--pretrain", action="store_true"
     )
@@ -470,6 +477,13 @@ def main(argv):
     else:
         net = models[args.model](quality=args.quality)
 
+    if args.basepoint is not None:
+        basepoint = torch.load(args.basepoint)
+        if not args.lsq:
+            AssertionError('Basepoint argument is for quantized model')
+        else:
+            net.load_state_dict(basepoint['state_dict'])
+
     if args.lsq:
         quant_config = config.get_config(args.config)
         modules_to_replace = find_modules_to_quantize(net, quant_config.quan)
@@ -483,6 +497,9 @@ def main(argv):
             net.update()
         else:
             net.load_state_dict(checkpoint['state_dict'])
+
+
+
 
     net = net.to(device)
 
