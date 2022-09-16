@@ -28,6 +28,8 @@ from compressai.models import (
     MSReLU,
     MSReLU6,
     MSTanh,
+    JointReLU,
+    GMMReLU,
 )
 
 from .pretrained import load_pretrained
@@ -46,6 +48,8 @@ __all__ = [
     "ms_relu",
     "ms_relu6",
     "ms_tanh",
+    "joint_relu",
+    "gmm_relu",
 ]
 
 model_architectures = {
@@ -62,6 +66,8 @@ model_architectures = {
     "ms-relu": MSReLU,
     "ms-relu6": MSReLU6,
     "ms-tanh": MSTanh,
+    "joint-relu": JointReLU,
+    "gmm-relu": GMMReLU,
 }
 
 root_url = "https://compressai.s3.amazonaws.com/models/v1"
@@ -190,7 +196,25 @@ cfgs = {
         7: (192, 320),
         8: (192, 320),
     },
+    "joint-relu": {
+        1: (192, 192),
+        2: (192, 192),
+        3: (192, 192),
+        4: (192, 192),
+        5: (192, 320),
+        6: (192, 320),
+        7: (192, 320),
+        8: (192, 320),
+    },
     "cheng2020-anchor": {
+        1: (128,),
+        2: (128,),
+        3: (128,),
+        4: (192,),
+        5: (192,),
+        6: (192,),
+    },
+    "gmm-relu": {
         1: (128,),
         2: (128,),
         3: (128,),
@@ -484,3 +508,11 @@ def ms_relu6(quality, metric="mse", pretrained=False, progress=True, **kwargs):
 
 def ms_tanh(quality, metric="mse", pretrained=False, progress=True, **kwargs):
     return _load_model("ms-tanh", metric, quality, pretrained, progress, **kwargs)
+
+
+def joint_relu(quality, metric="mse", pretrained=False, progress=True, **kwargs):
+    return _load_model("joint-relu", metric, quality, pretrained, progress, **kwargs)
+
+
+def gmm_relu(quality, metric="mse", pretrained=False, progress=True, **kwargs):
+    return _load_model("gmm-relu", metric, quality, pretrained, progress, **kwargs)

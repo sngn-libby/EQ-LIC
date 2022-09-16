@@ -38,8 +38,8 @@ class MaskedConv2d(nn.Conv2d):
 
         self.register_buffer("mask", torch.ones_like(self.weight.data))
         _, _, h, w = self.mask.size()
-        self.mask[:, :, h // 2, w // 2 + (mask_type == "B") :] = 0
-        self.mask[:, :, h // 2 + 1 :] = 0
+        self.mask[:, :, h // 2, w // 2 + (mask_type == "B"):] = 0
+        self.mask[:, :, h // 2 + 1:] = 0
 
     def forward(self, x):
         # TODO(begaintj): weight assigment is not supported by torchscript
@@ -157,6 +157,28 @@ class ResidualBlock(nn.Module):
 
         out = out + identity
         return out
+
+# 3 ReLU residual Blocks
+
+
+class ResidualBlockWithStrideReLU(ResidualBlockWithStride):
+    def __init__(self, in_ch, out_ch, stride=2):
+        super().__init__(in_ch, out_ch, stride=2)
+        self.leaky_relu = nn.ReLU()
+        self.gdn = nn.ReLU()
+
+
+class ResidualBlockUpsampleReLU(ResidualBlockUpsample):
+    def __init__(self, in_ch, out_ch, upsample=2):
+        super().__init__(in_ch, out_ch, upsample=2)
+        self.leaky_relu = nn.ReLU()
+        self.igdn = nn.ReLU()
+
+
+class ResidualBlockReLU(ResidualBlock):
+    def __init__(self, in_ch, out_ch):
+        super().__init__(in_ch, out_ch)
+        self.leaky_relu = nn.ReLU()
 
 
 class AttentionBlock(nn.Module):

@@ -38,11 +38,15 @@ class PAMSAct(torch.nn.Module):
     Quantization function for quantize activation with parameterized max scale.
     """
 
-    def __init__(self, bit, ema_epoch=0, decay=0.9997, **kwargs):
+    def __init__(self, bit, all_positive=False, ema_epoch=0, decay=0.9997, **kwargs):
         super().__init__()
         self.decay = decay
         self.k_bits = bit
-        self.qmax = 2. ** (self.k_bits - 1) - 1.
+        self.all_positive = all_positive
+        if all_positive:
+            self.qmax = 2. ** self.k_bits - 1.
+        else:
+            self.qmax = 2. ** (self.k_bits - 1) - 1.
         self.alpha = torch.nn.Parameter(torch.Tensor(1))
         self.ema_epoch = ema_epoch
         self.epoch = 0
@@ -54,6 +58,7 @@ class PAMSAct(torch.nn.Module):
 
     def _ema(self, x):
         max_val = torch.mean(torch.max(torch.max(torch.max(abs(x), dim=1)[0], dim=1)[0], dim=1)[0])
+        # mean from each data batch [C, W, H]'s absolute max value
 
         if self.epoch == 0:
             self.max_val = max_val
@@ -62,7 +67,10 @@ class PAMSAct(torch.nn.Module):
 
     def forward(self, x):
         if self.epoch > self.ema_epoch or not self.training:
-            act = torch.clamp(x, -self.alpha, self.alpha)
+            if self.all_positive:
+                act = torch.clamp(x, self.alpha * 0, self.alpha)
+            else:
+                act = torch.clamp(x, -self.alpha, self.alpha)
 
         elif self.epoch <= self.ema_epoch and self.training:
             act = x

@@ -23,6 +23,9 @@ __all__ = [
     "ResidualBlock",
     "ResidualBlockUpsample",
     "ResidualBlockWithStride",
+    "ResidualBlockReLU",
+    "ResidualBlockUpsampleReLU",
+    "ResidualBlockWithStrideReLU",
     "conv3x3",
     "subpel_conv3x3",
 ]

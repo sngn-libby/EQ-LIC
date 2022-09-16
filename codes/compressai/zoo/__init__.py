@@ -28,4 +28,6 @@ models = {
     "ms-relu": ms_relu,
     "ms-relu6": ms_relu6,
     "ms-tanh": ms_tanh,
+    "joint-relu": joint_relu,
+    "gmm-relu": gmm_relu,
 }

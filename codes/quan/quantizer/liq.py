@@ -20,6 +20,7 @@ class LiqQuan(Quantizer):
         super().__init__(bit)
 
         self.bit = bit
+        self.qmax = 2 ** (bit-1) - 1
         self.per_channel = per_channel
         self.interval = t.nn.Parameter(t.ones(1))
 
@@ -40,8 +41,8 @@ class LiqQuan(Quantizer):
     def forward(self, x):
         x = x / self.interval
         x = t.clamp(x, -1, 1)
-        x = (x + 1.0) / 2.0
-        x = round_pass(x * (self.bit-1)) / (self.bit-1)
-        x = x * 2.0 - 1.0
+        x = x * self.qmax
+        x = round_pass(x)
+        x = x / self.qmax
         x = x * self.interval
         return x
