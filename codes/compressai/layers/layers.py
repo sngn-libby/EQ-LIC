@@ -164,21 +164,21 @@ class ResidualBlock(nn.Module):
 class ResidualBlockWithStrideReLU(ResidualBlockWithStride):
     def __init__(self, in_ch, out_ch, stride=2):
         super().__init__(in_ch, out_ch, stride=2)
-        self.leaky_relu = nn.ReLU()
-        self.gdn = nn.ReLU()
+        self.leaky_relu = nn.ReLU(inplace=False)
+        self.gdn = nn.ReLU(inplace=False)
 
 
 class ResidualBlockUpsampleReLU(ResidualBlockUpsample):
     def __init__(self, in_ch, out_ch, upsample=2):
         super().__init__(in_ch, out_ch, upsample=2)
         self.leaky_relu = nn.ReLU()
-        self.igdn = nn.ReLU()
+        self.igdn = nn.ReLU(inplace=False)
 
 
 class ResidualBlockReLU(ResidualBlock):
     def __init__(self, in_ch, out_ch):
         super().__init__(in_ch, out_ch)
-        self.leaky_relu = nn.ReLU()
+        self.leaky_relu = nn.ReLU(inplace=False)
 
 
 class AttentionBlock(nn.Module):
