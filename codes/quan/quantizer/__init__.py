@@ -7,3 +7,4 @@ from .quantizer import IdentityQuan
 # from .liq import LiqQuan
 from .PAMS import PAMSAct
 from .PAMS import PAMSWeight
+from .MICS import MICS

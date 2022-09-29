@@ -33,7 +33,7 @@ class PAMSWeight(Quantizer):
         return q_weight
 
 
-class PAMSAct(torch.nn.Module):
+class PAMSAct(Quantizer):
     """
     Quantization function for quantize activation with parameterized max scale.
     """

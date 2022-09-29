@@ -28,6 +28,8 @@ def quantizer(default_cfg, this_cfg=None):
         q = PAMSWeight
     elif target_cfg['mode'] == 'pams_act':
         q = PAMSAct
+    elif target_cfg['mode'] == 'mics':
+        q = MICS
     else:
         raise ValueError('Cannot find quantizer `%s`', target_cfg['mode'])
 

@@ -420,6 +420,8 @@ def parse_args(argv):
 
 
 def main(argv):
+    torch.autograd.set_detect_anomaly(True)
+
     args = parse_args(argv)
 
     if args.seed is not None:
