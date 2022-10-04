@@ -177,10 +177,11 @@ def load_checkpoint(arch: str, checkpoint_path: str) -> nn.Module:
 
 def load_lsq_checkpoint(arch: str, quality: int, checkpoint_path: str,) -> nn.Module:
     model = pretrained_models[arch](quality=quality)
-    quant_config = config.get_config('configs/config.yaml')
+    quant_config = config.get_config('configs/ms_8bit_lsq.yaml')
     modules_to_replace = find_modules_to_quantize(model, quant_config.quan)
     model = replace_module_by_names(model, modules_to_replace)
-    model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+    model.load_state_dict(torch.load(checkpoint_path)['state_dict']) #['state_dict']
+    model.update()
     # for i in [0, 2, 4, 6]:
     #     model.g_a[i].quan_a_fn = IdentityQuan
     #     model.g_s[i].quan_a_fn = IdentityQuan

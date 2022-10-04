@@ -39,7 +39,7 @@ class PAMSAct(Quantizer):
     """
 
     def __init__(self, bit, all_positive=False, ema_epoch=0, decay=0.9997, **kwargs):
-        super().__init__()
+        super().__init__(bit)
         self.decay = decay
         self.k_bits = bit
         self.all_positive = all_positive
