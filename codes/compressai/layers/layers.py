@@ -205,7 +205,7 @@ class ResidualBlockUpsampleReLU(nn.Module):
         return out
 
 
-class ResidualBlockReLU(ResidualBlock):
+class ResidualBlockReLU(nn.Module):
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.conv1 = conv3x3(in_ch, out_ch)
