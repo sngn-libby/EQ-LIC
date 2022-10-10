@@ -161,24 +161,74 @@ class ResidualBlock(nn.Module):
 # 3 ReLU residual Blocks
 
 
-class ResidualBlockWithStrideReLU(ResidualBlockWithStride):
+class ResidualBlockWithStrideReLU(nn.Module):
     def __init__(self, in_ch, out_ch, stride=2):
-        super().__init__(in_ch, out_ch, stride=2)
-        self.leaky_relu = nn.ReLU(inplace=False)
-        self.gdn = nn.ReLU(inplace=False)
+        super().__init__()
+        self.conv1 = conv3x3(in_ch, out_ch, stride=stride)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(out_ch, out_ch)
+        if stride != 1 or in_ch != out_ch:
+            self.skip = conv1x1(in_ch, out_ch, stride=stride)
+        else:
+            self.skip = None
+
+    def forward(self, x):
+        identity = x
+        out = self.conv1(x)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.relu(out)
+
+        if self.skip is not None:
+            identity = self.skip(x)
+
+        out += identity
+        return out
 
 
-class ResidualBlockUpsampleReLU(ResidualBlockUpsample):
+class ResidualBlockUpsampleReLU(nn.Module):
     def __init__(self, in_ch, out_ch, upsample=2):
-        super().__init__(in_ch, out_ch, upsample=2)
-        self.leaky_relu = nn.ReLU()
-        self.igdn = nn.ReLU(inplace=False)
+        super().__init__()
+        self.subpel_conv = subpel_conv3x3(in_ch, out_ch, upsample)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv = conv3x3(out_ch, out_ch)
+        self.upsample = subpel_conv3x3(in_ch, out_ch, upsample)
+
+    def forward(self, x):
+        identity = x
+        out = self.subpel_conv(x)
+        out = self.relu(out)
+        out = self.conv(out)
+        out = self.relu(out)
+        identity = self.upsample(x)
+        out += identity
+        return out
 
 
 class ResidualBlockReLU(ResidualBlock):
     def __init__(self, in_ch, out_ch):
-        super().__init__(in_ch, out_ch)
-        self.leaky_relu = nn.ReLU(inplace=False)
+        super().__init__()
+        self.conv1 = conv3x3(in_ch, out_ch)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(out_ch, out_ch)
+        if in_ch != out_ch:
+            self.skip = conv1x1(in_ch, out_ch)
+        else:
+            self.skip = None
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.relu(out)
+
+        if self.skip is not None:
+            identity = self.skip(x)
+
+        out = out + identity
+        return out
 
 
 class AttentionBlock(nn.Module):
