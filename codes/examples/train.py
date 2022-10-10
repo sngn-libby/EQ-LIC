@@ -534,18 +534,18 @@ def main(argv):
 
     for epoch in range(start_epoch, args.epochs):
         logger_train.info(f"Learning rate: {optimizer.param_groups[0]['lr']}")
-        # current_step = train_one_epoch(
-        #     net,
-        #     criterion,
-        #     train_dataloader,
-        #     optimizer,
-        #     aux_optimizer,
-        #     epoch,
-        #     args.clip_max_norm,
-        #     logger_train,
-        #     tb_logger,
-        #     current_step
-        # )
+        current_step = train_one_epoch(
+            net,
+            criterion,
+            train_dataloader,
+            optimizer,
+            aux_optimizer,
+            epoch,
+            args.clip_max_norm,
+            logger_train,
+            tb_logger,
+            current_step
+        )
 
         save_dir = os.path.join('../experiments', args.experiment, 'val_images', '%03d' % (epoch + 1))
         loss = test_epoch(epoch, test_dataloader, net, criterion, save_dir, logger_val, tb_logger)
