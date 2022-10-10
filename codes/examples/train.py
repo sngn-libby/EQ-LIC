@@ -292,10 +292,8 @@ def test_epoch(epoch, test_dataloader, model, criterion, save_dir, logger_val, t
 def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
     # torch.save(state, filename)
     if is_best:
-        dest_filename = filename.replace(filename.split('\\')[-1], "checkpoint_best_loss.pth.tar")
+        dest_filename = filename.replace(filename.split('/')[-1], "checkpoint_best_loss.pth.tar")
         torch.save(state, dest_filename)
-        print(filename)
-        print(dest_filename)
         # shutil.copyfile(filename, dest_filename)
 
 
@@ -566,7 +564,7 @@ def main(argv):
                     "lr_scheduler": lr_scheduler.state_dict(),
                 },
                 is_best,
-                os.path.join('..\\experiments', args.experiment, 'checkpoints', "checkpoint_%03d.pth.tar" % (epoch + 1))
+                os.path.join('../experiments', args.experiment, 'checkpoints', "checkpoint_%03d.pth.tar" % (epoch + 1)).replace("\\","/")
             )
             if is_best:
                 logger_val.info('best checkpoint saved.')
