@@ -165,7 +165,7 @@ class ResidualBlockWithStrideReLU(nn.Module):
     def __init__(self, in_ch, out_ch, stride=2):
         super().__init__()
         self.conv1 = conv3x3(in_ch, out_ch, stride=stride)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.conv2 = conv3x3(out_ch, out_ch)
         if stride != 1 or in_ch != out_ch:
             self.skip = conv1x1(in_ch, out_ch, stride=stride)
@@ -190,7 +190,7 @@ class ResidualBlockUpsampleReLU(nn.Module):
     def __init__(self, in_ch, out_ch, upsample=2):
         super().__init__()
         self.subpel_conv = subpel_conv3x3(in_ch, out_ch, upsample)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.conv = conv3x3(out_ch, out_ch)
         self.upsample = subpel_conv3x3(in_ch, out_ch, upsample)
 
@@ -209,7 +209,7 @@ class ResidualBlockReLU(nn.Module):
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.conv1 = conv3x3(in_ch, out_ch)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.conv2 = conv3x3(out_ch, out_ch)
         if in_ch != out_ch:
             self.skip = conv1x1(in_ch, out_ch)
