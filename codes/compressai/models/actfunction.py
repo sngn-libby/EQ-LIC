@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from compressai.layers import ResidualBlockReLU, ResidualBlockUpsample, ResidualBlockUpsampleReLU, ResidualBlockWithStrideReLU, conv3x3, subpel_conv3x3
+from compressai.layers import ResidualBlockReLU, ResidualBlockUpsampleReLU, ResidualBlockWithStrideReLU, conv3x3, subpel_conv3x3
 from . import MeanScaleHyperprior, JointAutoregressiveHierarchicalPriors, Cheng2020Anchor
 
 from .utils import conv, deconv, update_registered_buffers
@@ -196,11 +196,11 @@ class GMMReLU(Cheng2020Anchor):
 
         self.g_s = nn.Sequential(
             ResidualBlockReLU(N, N),
-            ResidualBlockUpsample(N, N, 2),
+            ResidualBlockUpsampleReLU(N, N, 2),
             ResidualBlockReLU(N, N),
-            ResidualBlockUpsample(N, N, 2),
+            ResidualBlockUpsampleReLU(N, N, 2),
             ResidualBlockReLU(N, N),
-            ResidualBlockUpsample(N, N, 2),
+            ResidualBlockUpsampleReLU(N, N, 2),
             ResidualBlockReLU(N, N),
             subpel_conv3x3(N, 3, 2),
         )
