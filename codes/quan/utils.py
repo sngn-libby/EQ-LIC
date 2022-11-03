@@ -30,6 +30,10 @@ def quantizer(default_cfg, this_cfg=None):
         q = PAMSAct
     elif target_cfg['mode'] == 'mics':
         q = MICS
+    elif target_cfg['mode'] == 'lsq_qel_act':
+        q = LsqQelAct
+    elif target_cfg['mode'] == 'lsq_qel_weight':
+        q = LsqQelWeight
     else:
         raise ValueError('Cannot find quantizer `%s`', target_cfg['mode'])
 

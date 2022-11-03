@@ -8,3 +8,5 @@ from .quantizer import IdentityQuan
 from .PAMS import PAMSAct
 from .PAMS import PAMSWeight
 from .MICS import MICS
+from .lsq_qel import LsqQelAct
+from .lsq_qel import LsqQelWeight

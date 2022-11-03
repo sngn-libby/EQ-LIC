@@ -44,6 +44,8 @@ from pathlib import Path
 
 from compressai.zoo.image import model_architectures as architectures
 
+import quan
+
 
 def torch2img(x: torch.Tensor) -> Image.Image:
     return ToPILImage()(x.clamp_(0, 1).squeeze())
@@ -134,18 +136,24 @@ def configure_optimizers(net, args):
     Return two optimizers"""
 
     parameters = [
-        p for n, p in net.named_parameters() if not n.endswith(".quantiles")
+        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('fn.s')
     ]
     aux_parameters = [
         p for n, p in net.named_parameters() if n.endswith(".quantiles")
+    ]
+    scale_parameters = [
+        p for n, p in net.named_parameters() if n.endswith("_fn.s")
     ]
 
     # Make sure we don't have an intersection of parameters
     params_dict = dict(net.named_parameters())
     inter_params = set(parameters) & set(aux_parameters)
-    union_params = set(parameters) | set(aux_parameters)
-
     assert len(inter_params) == 0
+    inter_params = set(parameters) & set(scale_parameters)
+    assert len(inter_params) == 0
+
+    union_params = set(parameters) | set(aux_parameters)
+    union_params = union_params | set(scale_parameters)
     assert len(union_params) - len(params_dict.keys()) == 0
 
     optimizer = optim.Adam(
@@ -158,28 +166,41 @@ def configure_optimizers(net, args):
         lr=args.aux_learning_rate,
         weight_decay=0,
     )
-    return optimizer, aux_optimizer
+    scale_optimizer = optim.Adam(
+        (p for p in scale_parameters if p.requires_grad),
+        lr=1e-4,
+        weight_decay=0,
+    )
+    return optimizer, aux_optimizer, scale_optimizer
 
 
 def train_one_epoch(
-    model, criterion, train_dataloader, optimizer, aux_optimizer, epoch, clip_max_norm, logger_train, tb_logger, current_step
+    model, criterion, train_dataloader, optimizer, aux_optimizer, scale_optimizer, epoch, clip_max_norm, logger_train, tb_logger, current_step
 ):
     model.train()
     device = next(model.parameters()).device
-    model.apply(lambda m: setattr(m, 'epoch', epoch))
+    model.apply(lambda m: setattr(m, 'epoch', 1))
 
     for i, d in enumerate(train_dataloader):
         d = d.to(device)
 
         optimizer.zero_grad()
         aux_optimizer.zero_grad()
-        out_net = model(d)
+        scale_optimizer.zero_grad()
 
+        quan.quant_loss = quan.quant_loss.detach()
+        quan.quant_loss *= 0
+
+        out_net = model(d)
         out_criterion = criterion(out_net, d)
-        out_criterion["loss"].backward()
-        if clip_max_norm > 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
-        optimizer.step()
+
+        # out_criterion["loss"].backward()
+        # if clip_max_norm > 0:
+        #    torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
+        # optimizer.step()
+
+        quan.quant_loss.backward()
+        scale_optimizer.step()
 
         aux_loss = model.aux_loss()
         aux_loss.backward()
@@ -200,7 +221,8 @@ def train_one_epoch(
                     f"Train epoch {epoch}: ["
                     f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
-                    f'Loss: {out_criterion["loss"].item():.4f} | '
+                    f'RD Loss: {out_criterion["loss"]:.4f} | '
+                    f'Quant loss: {quan.quant_loss:.4f} | '
                     f'MSE loss: {out_criterion["mse_loss"].item():.4f} | '
                     f'Bpp loss: {out_criterion["bpp_loss"].item():.4f} | '
                     f"Aux loss: {aux_loss.item():.2f}"
@@ -507,7 +529,7 @@ def main(argv):
     if args.cuda and torch.cuda.device_count() > 1:
         net = CustomDataParallel(net)
 
-    optimizer, aux_optimizer = configure_optimizers(net, args)
+    optimizer, aux_optimizer, scale_optimizer = configure_optimizers(net, args)
     # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     # lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.3, patience=20, verbose=True)
     lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[450, ], gamma=0.1)
@@ -536,6 +558,7 @@ def main(argv):
             train_dataloader,
             optimizer,
             aux_optimizer,
+            scale_optimizer,
             epoch,
             args.clip_max_norm,
             logger_train,

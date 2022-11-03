@@ -20,3 +20,5 @@ codes/examples/RD_curve.py
 *.pyc
 checkpoint_best_loss.pth.tar
 checkpoint_best_loss.pth.tar
+codes/examples/simple_interval_training.py
+codes/examples/histogram.py
