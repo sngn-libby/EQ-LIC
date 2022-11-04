@@ -106,16 +106,28 @@ def main(argv):
     plt.show()
     '''
 
-    # activation
-
-    img1 = Image.open('c:/Kodak/kodim01.png')
-    img2 = Image.open('c:/Kodak/kodim02.png')
+    # activation 분포
 
     transform = transforms.Compose(
         [transforms.RandomCrop((256, 256)), transforms.ToTensor()]
     )
-    tensor1 = transform(img1).unsqueeze(0)
-    tensor2 = transform(img2).unsqueeze(0)
+
+    tensor = None
+    for img_name in os.listdir('c:/kodak'):
+        if img_name.endswith(".png"):
+            img = Image.open('C:/Kodak/' + img_name).convert('RGB')
+            img_t = transform(img).unsqueeze(0)
+            if tensor is None:
+                tensor = img_t
+            else:
+                tensor = torch.cat((tensor, img_t), dim=0)
+
+    act = net.g_a[0:4](tensor)
+    act = act.reshape(-1)
+    act = act.detach().numpy()
+    plt.hist(act, bins=100)
+    plt.semilogy()
+    plt.show()
 
     # distribution before/after quantization
     '''
@@ -137,11 +149,14 @@ def main(argv):
     plt.show()
     '''
 
-    y0 = tensor1
-    y1 = net.g_a[0:2](tensor1)
-    y2 = net.g_a[0:4](tensor1)
-    y3 = net.g_a[0:6](tensor1)
-    y = net.g_a(tensor1)
+    # 각 layer에서 quantization error, step size 출력
+
+    '''
+    y0 = tensor
+    y1 = net.g_a[0:2](tensor)
+    y2 = net.g_a[0:4](tensor)
+    y3 = net.g_a[0:6](tensor)
+    y = net.g_a(tensor)
 
     z1 = net.h_a[0:2](y)
     z2 = net.h_a[0:4](y)
@@ -168,11 +183,12 @@ def main(argv):
     norms_gs = []
     print('\ng_a')
     i = 0
-    for yn, fn in zip([y0, y1, y2, y3], [net.g_a[0].quan_a_fn, net.g_a[2].quan_a_fn, net.g_a[4].quan_a_fn, net.g_a[6].quan_a_fn]):
+    for yn, fn in zip([y0, y1, y2, y3],
+                      [net.g_a[0].quan_a_fn, net.g_a[2].quan_a_fn, net.g_a[4].quan_a_fn, net.g_a[6].quan_a_fn]):
         quan = fn(yn).detach().view(-1).numpy()
         yn = yn.detach().view(-1).numpy()
         print(i)
-        i+=1
+        i += 1
         print(np.linalg.norm(yn - quan, 1), ' | ', fn.s.data.item())
         all_step += fn.s.data.item()
         steps.append(fn.s.data.item())
@@ -208,7 +224,8 @@ def main(argv):
     print('\ng_s')
     i = 0
     step = 0
-    for xn, fn in zip([y_hat, x1, x2, x3], [net.g_s[0].quan_a_fn, net.g_s[2].quan_a_fn, net.g_s[4].quan_a_fn, net.g_s[6].quan_a_fn]):
+    for xn, fn in zip([y_hat, x1, x2, x3],
+                      [net.g_s[0].quan_a_fn, net.g_s[2].quan_a_fn, net.g_s[4].quan_a_fn, net.g_s[6].quan_a_fn]):
         quan = fn(xn).detach().view(-1).numpy()
         xn = xn.detach().view(-1).numpy()
         print(i)
@@ -232,9 +249,9 @@ def main(argv):
 
     print('Quantization error L1 norm 합', norm)
 
-    print('전체 step size 평균', all_step/14)
+    print('전체 step size 평균', all_step / 14)
 
-    print('g_s step size 평균', step/4)
+    print('g_s step size 평균', step / 4)
 
     print('z_hat 실제 범위, 예측 범위 크기')
     print(z_hat.max() - z_hat.min())
@@ -245,10 +262,11 @@ def main(argv):
     print(net.g_s[0].quan_a_fn.s.data * 255)
 
     plt.subplot(2, 1, 1)
-    plt.hist(tensor1.detach().view(-1).numpy(), bins=255)
+    plt.hist(tensor.detach().view(-1).numpy(), bins=255)
     plt.subplot(2, 1, 2)
-    plt.hist(net.g_a[0].quan_a_fn(tensor1).detach().view(-1).numpy(), bins=255)
+    plt.hist(net.g_a[0].quan_a_fn(tensor).detach().view(-1).numpy(), bins=255)
     plt.show()
+    '''
 
 
 if __name__ == "__main__":

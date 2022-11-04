@@ -46,8 +46,8 @@ class LsqQelWeight(Quantizer):
             self.s.data = x.detach().abs().max() / self.thd_pos
 
     def forward(self, x):
-        if self.epoch == 0 and self.training:
-            self.init_weight(x)
+        # if self.epoch == 0 and self.training:
+        #     self.init_weight(x)
 
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         s_scale = grad_scale(self.s, s_grad_scale) # s와 같은데 grad scale 적용된 버전
@@ -61,7 +61,7 @@ class LsqQelWeight(Quantizer):
             m = 2
             quan.quant_loss = quan.quant_loss.to(x.device)
             quan.quant_loss += ((x_hat - x)**m).sum()**(1/m) / len(x.reshape(-1))
-        return x
+        return x_hat
 
 
 class LsqQelAct(Quantizer):
@@ -94,8 +94,8 @@ class LsqQelAct(Quantizer):
             self.s.data = x.detach().abs().max() / self.thd_pos
 
     def forward(self, x):
-        if self.epoch == 0 and self.training:
-            self.init_activation(x)
+        # if self.epoch == 0 and self.training:
+        #     self.init_activation(x)
 
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         s_scale = grad_scale(self.s, s_grad_scale)  # s와 같은데 grad scale 적용된 버전
@@ -105,8 +105,11 @@ class LsqQelAct(Quantizer):
         x_hat = round_pass(x_hat)
         x_hat = x_hat * s_scale
 
-        if self.training:
-            m = 2
-            quan.quant_loss = quan.quant_loss.to(x.device)
-            quan.quant_loss += ((x_hat - x)**m).sum()**(1/m) / len(x.reshape(-1))
-        return x_hat
+        # if self.training:
+        #     m = 6
+        #     quan.quant_loss = quan.quant_loss.to(x.device)
+        #     quan.quant_loss += ((x_hat - x)**m).sum()**(1/m) / len(x.reshape(-1))
+        #
+        #     quan.quant_loss = quan.quant_loss.to(x.device)
+        #     quan.quant_loss += ((x_hat - x).abs()).sum() / len(x.reshape(-1))
+        return x

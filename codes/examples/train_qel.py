@@ -136,13 +136,13 @@ def configure_optimizers(net, args):
     Return two optimizers"""
 
     parameters = [
-        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('fn.s')
+        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('w_fn.s')
     ]
     aux_parameters = [
         p for n, p in net.named_parameters() if n.endswith(".quantiles")
     ]
     scale_parameters = [
-        p for n, p in net.named_parameters() if n.endswith("_fn.s")
+        p for n, p in net.named_parameters() if n.endswith("w_fn.s")
     ]
 
     # Make sure we don't have an intersection of parameters
@@ -172,6 +172,12 @@ def configure_optimizers(net, args):
         weight_decay=0,
     )
     return optimizer, aux_optimizer, scale_optimizer
+
+
+def print_act_scale(model):
+    for n, p in model.named_parameters():
+        if n.endswith("a_fn.s"):
+            print(n, p.item())
 
 
 def train_one_epoch(
@@ -216,13 +222,14 @@ def train_one_epoch(
                 tb_logger.add_scalar('{}'.format('[train]: ms_ssim_loss'), out_criterion["ms_ssim_loss"].item(), current_step)
 
         if i % 100 == 0:
+            # print_act_scale(model)
             if out_criterion["ms_ssim_loss"] is None:
                 logger_train.info(
                     f"Train epoch {epoch}: ["
                     f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'RD Loss: {out_criterion["loss"]:.4f} | '
-                    f'Quant loss: {quan.quant_loss:.4f} | '
+                    f'Quant loss: {quan.quant_loss:.2g} | '
                     f'MSE loss: {out_criterion["mse_loss"].item():.4f} | '
                     f'Bpp loss: {out_criterion["bpp_loss"].item():.4f} | '
                     f"Aux loss: {aux_loss.item():.2f}"
@@ -306,7 +313,6 @@ def test_epoch(epoch, test_dataloader, model, criterion, save_dir, logger_val, t
             f"MS-SSIM: {ms_ssim.avg:.6f}"
         )
         tb_logger.add_scalar('{}'.format('[val]: ms_ssim_loss'), ms_ssim_loss.avg, epoch + 1)
-
     return loss.avg
 
 

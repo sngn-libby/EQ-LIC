@@ -19,7 +19,7 @@ class QuanConv2d(t.nn.Conv2d):
         self.quan_a_fn = quan_a_fn
 
         self.weight = t.nn.Parameter(m.weight.detach())
-        self.quan_w_fn.init_weight(m.weight)
+        self.quan_w_fn.init_weight(m.weight.detach())
         self.bias = None
         if m.bias is not None:
             self.bias = t.nn.Parameter(m.bias.detach())
@@ -44,7 +44,7 @@ class QuanMaskedConv2d(t.nn.Conv2d):
         self.quan_a_fn = quan_a_fn
 
         self.weight = t.nn.Parameter(m.weight.detach())
-        self.quan_w_fn.init_weight(m.weight)
+        self.quan_w_fn.init_weight(m.weight.detach())
         self.bias = None
         if m.bias is not None:
             self.bias = t.nn.Parameter(m.bias.detach())
@@ -70,7 +70,7 @@ class QuanLinear(t.nn.Linear):
         self.quan_a_fn = quan_a_fn
 
         self.weight = t.nn.Parameter(m.weight.detach())
-        self.quan_w_fn.init_weight(m.weight)
+        self.quan_w_fn.init_weight(m.weight.detach())
         if m.bias is not None:
             self.bias = t.nn.Parameter(m.bias.detach())
 
@@ -95,7 +95,7 @@ class QuanConvTranspose2d(t.nn.ConvTranspose2d):
         self.quan_a_fn = quan_a_fn
 
         self.weight = t.nn.Parameter(m.weight.detach())
-        self.quan_w_fn.init_weight(m.weight)
+        self.quan_w_fn.init_weight(m.weight.detach())
         self.bias = None
         if m.bias is not None:
             self.bias = t.nn.Parameter(m.bias.detach())
