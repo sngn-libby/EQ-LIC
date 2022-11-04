@@ -19,8 +19,6 @@ def round_pass(x):
 class LsqQelWeight(Quantizer):
     def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
         super().__init__(bit)
-        self.epoch = 0
-
         if all_positive:
             assert not symmetric, "Positive quantization cannot be symmetric"
             # unsigned activation is quantized to [0, 2^b-1]
@@ -46,9 +44,6 @@ class LsqQelWeight(Quantizer):
             self.s.data = x.detach().abs().max() / self.thd_pos
 
     def forward(self, x):
-        # if self.epoch == 0 and self.training:
-        #     self.init_weight(x)
-
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         s_scale = grad_scale(self.s, s_grad_scale) # s와 같은데 grad scale 적용된 버전
 
@@ -58,6 +53,8 @@ class LsqQelWeight(Quantizer):
         x_hat = x_hat * s_scale
 
         if self.training:
+            # quan.quant_loss = quan.quant_loss.to(x.device)
+            # quan.quant_loss += ((x_hat - x).abs()).sum() / len(x.reshape(-1))
             m = 2
             quan.quant_loss = quan.quant_loss.to(x.device)
             quan.quant_loss += ((x_hat - x)**m).sum()**(1/m) / len(x.reshape(-1))
@@ -67,8 +64,7 @@ class LsqQelWeight(Quantizer):
 class LsqQelAct(Quantizer):
     def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
         super().__init__(bit)
-        self.epoch = 0
-
+        self.inited = False
         if all_positive:
             assert not symmetric, "Positive quantization cannot be symmetric"
             # unsigned activation is quantized to [0, 2^b-1]
@@ -94,7 +90,8 @@ class LsqQelAct(Quantizer):
             self.s.data = x.detach().abs().max() / self.thd_pos
 
     def forward(self, x):
-        # if self.epoch == 0 and self.training:
+        # if not self.inited and self.training:
+        #     self.inited = True
         #     self.init_activation(x)
 
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
@@ -105,11 +102,10 @@ class LsqQelAct(Quantizer):
         x_hat = round_pass(x_hat)
         x_hat = x_hat * s_scale
 
-        # if self.training:
-        #     m = 6
-        #     quan.quant_loss = quan.quant_loss.to(x.device)
-        #     quan.quant_loss += ((x_hat - x)**m).sum()**(1/m) / len(x.reshape(-1))
-        #
-        #     quan.quant_loss = quan.quant_loss.to(x.device)
-        #     quan.quant_loss += ((x_hat - x).abs()).sum() / len(x.reshape(-1))
-        return x
+        if self.training:
+            m = 2
+            quan.quant_loss = quan.quant_loss.to(x.device)
+            quan.quant_loss += ((x_hat - x)**m).sum()**(1/m) / len(x.reshape(-1))
+            # quan.quant_loss = quan.quant_loss.to(x.device)
+            # quan.quant_loss += ((x_hat - x).abs()).sum() / len(x.reshape(-1))
+        return x_hat

@@ -136,13 +136,13 @@ def configure_optimizers(net, args):
     Return two optimizers"""
 
     parameters = [
-        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('w_fn.s')
+        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('_fn.s')
     ]
     aux_parameters = [
         p for n, p in net.named_parameters() if n.endswith(".quantiles")
     ]
     scale_parameters = [
-        p for n, p in net.named_parameters() if n.endswith("w_fn.s")
+        p for n, p in net.named_parameters() if n.endswith("_fn.s")
     ]
 
     # Make sure we don't have an intersection of parameters
@@ -200,12 +200,13 @@ def train_one_epoch(
         out_net = model(d)
         out_criterion = criterion(out_net, d)
 
-        # out_criterion["loss"].backward()
-        # if clip_max_norm > 0:
-        #    torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
-        # optimizer.step()
+        out_criterion["loss"] += 1 * quan.quant_loss
+        out_criterion["loss"].backward()
+        if clip_max_norm > 0:
+           torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
+        optimizer.step()
 
-        quan.quant_loss.backward()
+        # quan.quant_loss.backward()
         scale_optimizer.step()
 
         aux_loss = model.aux_loss()
@@ -229,7 +230,7 @@ def train_one_epoch(
                     f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'RD Loss: {out_criterion["loss"]:.4f} | '
-                    f'Quant loss: {quan.quant_loss:.2g} | '
+                    f'Quant loss: {quan.quant_loss:.3g} | '
                     f'MSE loss: {out_criterion["mse_loss"].item():.4f} | '
                     f'Bpp loss: {out_criterion["bpp_loss"].item():.4f} | '
                     f"Aux loss: {aux_loss.item():.2f}"
