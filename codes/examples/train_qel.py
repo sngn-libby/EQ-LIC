@@ -205,8 +205,6 @@ def train_one_epoch(
         if clip_max_norm > 0:
            torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
         optimizer.step()
-
-        # quan.quant_loss.backward()
         scale_optimizer.step()
 
         aux_loss = model.aux_loss()
