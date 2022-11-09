@@ -181,11 +181,12 @@ def print_act_scale(model):
 
 
 def train_one_epoch(
-    model, criterion, train_dataloader, optimizer, aux_optimizer, scale_optimizer, epoch, clip_max_norm, logger_train, tb_logger, current_step
+        model, criterion, train_dataloader, optimizer, aux_optimizer, scale_optimizer, epoch, clip_max_norm,
+        logger_train, tb_logger, current_step
 ):
     model.train()
     device = next(model.parameters()).device
-    model.apply(lambda m: setattr(m, 'epoch', 1))
+    model.apply(lambda m: setattr(m, 'epoch', epoch))
 
     for i, d in enumerate(train_dataloader):
         d = d.to(device)
@@ -194,17 +195,19 @@ def train_one_epoch(
         aux_optimizer.zero_grad()
         scale_optimizer.zero_grad()
 
-        quan.quant_loss = quan.quant_loss.detach()
         quan.quant_loss *= 0
+        quan.quant_loss = quan.quant_loss.detach()
 
         out_net = model(d)
         out_criterion = criterion(out_net, d)
 
-        out_criterion["loss"] += 1 * quan.quant_loss
+        # out_criterion["loss"] += 1 * quan.quant_loss
         out_criterion["loss"].backward()
+        # quan.quant_loss.backward()
         if clip_max_norm > 0:
-           torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
-        optimizer.step()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
+        # if epoch > 0:
+        #     optimizer.step()
         scale_optimizer.step()
 
         aux_loss = model.aux_loss()
@@ -218,14 +221,15 @@ def train_one_epoch(
             if out_criterion["mse_loss"] is not None:
                 tb_logger.add_scalar('{}'.format('[train]: mse_loss'), out_criterion["mse_loss"].item(), current_step)
             if out_criterion["ms_ssim_loss"] is not None:
-                tb_logger.add_scalar('{}'.format('[train]: ms_ssim_loss'), out_criterion["ms_ssim_loss"].item(), current_step)
+                tb_logger.add_scalar('{}'.format('[train]: ms_ssim_loss'), out_criterion["ms_ssim_loss"].item(),
+                                     current_step)
 
         if i % 100 == 0:
-            # print_act_scale(model)
+            print_act_scale(model)
             if out_criterion["ms_ssim_loss"] is None:
                 logger_train.info(
                     f"Train epoch {epoch}: ["
-                    f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
+                    f"{i * len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'RD Loss: {out_criterion["loss"]:.4f} | '
                     f'Quant loss: {quan.quant_loss:.3g} | '
@@ -236,7 +240,7 @@ def train_one_epoch(
             else:
                 logger_train.info(
                     f"Train epoch {epoch}: ["
-                    f"{i*len(d):5d}/{len(train_dataloader.dataset)}"
+                    f"{i * len(d):5d}/{len(train_dataloader.dataset)}"
                     f" ({100. * i / len(train_dataloader):.0f}%)] "
                     f'Loss: {out_criterion["loss"].item():.4f} | '
                     f'MS-SSIM loss: {out_criterion["ms_ssim_loss"].item():.4f} | '
@@ -588,7 +592,8 @@ def main(argv):
                     "lr_scheduler": lr_scheduler.state_dict(),
                 },
                 is_best,
-                os.path.join('../experiments', args.experiment, 'checkpoints', "checkpoint_%03d.pth.tar" % (epoch + 1)).replace("\\","/")
+                os.path.join('../experiments', args.experiment, 'checkpoints',
+                             "checkpoint_%03d.pth.tar" % (epoch + 1)).replace("\\", "/")
             )
             if is_best:
                 logger_val.info('best checkpoint saved.')

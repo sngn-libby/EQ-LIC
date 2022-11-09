@@ -1,6 +1,6 @@
 import torch as t
 import quan
-
+import math
 from .quantizer import Quantizer
 
 
@@ -41,11 +41,11 @@ class LsqQelWeight(Quantizer):
         if self.per_channel:
             self.s.data = x.detach().abs().amax(dim=(1, 2, 3), keepdim=True) / self.thd_pos
         else:
-            self.s.data = x.detach().abs().max() / self.thd_pos
+            self.s.data = x.detach().abs().amax() / self.thd_pos
 
     def forward(self, x):
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-        s_scale = grad_scale(self.s, s_grad_scale) # s와 같은데 grad scale 적용된 버전
+        s_scale = grad_scale(self.s, s_grad_scale)  # s와 같은데 grad scale 적용된 버전
 
         x_hat = x / s_scale
         x_hat = t.clamp(x_hat, self.thd_neg, self.thd_pos)
@@ -81,18 +81,17 @@ class LsqQelAct(Quantizer):
                 self.thd_pos = 2 ** (bit - 1) - 1
 
         self.per_channel = per_channel
-        self.s = t.nn.Parameter(t.FloatTensor([1]).squeeze() / (self.thd_pos ** 0.5))
+        self.s = t.nn.Parameter(t.FloatTensor([1]).squeeze() / self.thd_pos)
 
     def init_activation(self, x, *args, **kwargs):
+        self.s.data = x.detach().abs().amax() / self.thd_pos
         if self.per_channel:
-            self.s.data = x.detach().abs().amax(dim=(0, 2, 3), keepdim=True) / self.thd_pos
-        else:
-            self.s.data = x.detach().abs().max() / self.thd_pos
+            self.s.data = self.s.data.detach().expand(x.shape[1]).clone().unsqueeze(1).unsqueeze(1).unsqueeze(0).cuda()
 
     def forward(self, x):
-        # if not self.inited and self.training:
-        #     self.inited = True
-        #     self.init_activation(x)
+        if not self.inited and self.training:
+            self.inited = True
+            self.init_activation(x)
 
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         s_scale = grad_scale(self.s, s_grad_scale)  # s와 같은데 grad scale 적용된 버전
