@@ -64,11 +64,10 @@ class PAMSAct(Quantizer):
         if self.epoch > self.ema_epoch or not self.training:
             act = torch.clamp(x, -self.alpha, self.alpha)
 
-        elif self.epoch <= self.ema_epoch and self.training:
+        else:
             act = x
             self._ema(x)
             self.alpha.data = self.max_val.unsqueeze(0)
-            print('my name is doof and you do what i say')
 
         act = act * self.qmax / self.alpha
         q_act = round_pass(act)
