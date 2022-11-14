@@ -41,7 +41,7 @@ class LsqQelWeight(Quantizer):
         if self.per_channel:
             self.s.data = x.detach().abs().amax(dim=(1, 2, 3), keepdim=True) / self.thd_pos
         else:
-            self.s.data = x.detach().abs().amax() / self.thd_pos
+            self.s.data = x.detach().abs().amax(dim=(1, 2, 3)).mean() / self.thd_pos
 
     def forward(self, x):
         s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)

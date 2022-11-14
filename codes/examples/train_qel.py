@@ -136,13 +136,13 @@ def configure_optimizers(net, args):
     Return two optimizers"""
 
     parameters = [
-        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('_fn.s')
+        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('alpha')
     ]
     aux_parameters = [
         p for n, p in net.named_parameters() if n.endswith(".quantiles")
     ]
     scale_parameters = [
-        p for n, p in net.named_parameters() if n.endswith("_fn.s")
+        p for n, p in net.named_parameters() if n.endswith("alpha")
     ]
 
     # Make sure we don't have an intersection of parameters
@@ -176,7 +176,7 @@ def configure_optimizers(net, args):
 
 def print_act_scale(model):
     for n, p in model.named_parameters():
-        if n.endswith("a_fn.s"):
+        if n.endswith("alpha"):
             print(n, p.item())
 
 
@@ -186,7 +186,7 @@ def train_one_epoch(
 ):
     model.train()
     device = next(model.parameters()).device
-    model.apply(lambda m: setattr(m, 'epoch', epoch))
+    model.apply(lambda m: setattr(m, 'epoch', epoch+1))
 
     for i, d in enumerate(train_dataloader):
         d = d.to(device)
@@ -206,8 +206,7 @@ def train_one_epoch(
         # quan.quant_loss.backward()
         if clip_max_norm > 0:
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip_max_norm)
-        # if epoch > 0:
-        #     optimizer.step()
+        optimizer.step()
         scale_optimizer.step()
 
         aux_loss = model.aux_loss()
