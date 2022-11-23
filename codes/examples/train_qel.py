@@ -136,13 +136,13 @@ def configure_optimizers(net, args):
     Return two optimizers"""
 
     parameters = [
-        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('alpha')
+        p for n, p in net.named_parameters() if not n.endswith(".quantiles") and not n.endswith('fn.s')
     ]
     aux_parameters = [
         p for n, p in net.named_parameters() if n.endswith(".quantiles")
     ]
     scale_parameters = [
-        p for n, p in net.named_parameters() if n.endswith("alpha")
+        p for n, p in net.named_parameters() if n.endswith("fn.s")
     ]
 
     # Make sure we don't have an intersection of parameters

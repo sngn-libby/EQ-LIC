@@ -16,6 +16,14 @@ def round_pass(x):
     return (y - y_grad).detach() + y_grad
 
 
+def clamp_pass(x, mini, maxi):
+    y = x.clamp(mini, maxi)
+    outside = (x < mini) | (x > maxi)
+    inside = t.logical_not(outside)
+    y_grad = x * outside * 0.01 + x * inside
+    return (y - y_grad).detach() + y_grad
+
+
 class LsqQelWeight(Quantizer):
     def __init__(self, bit, all_positive=False, symmetric=False, per_channel=True):
         super().__init__(bit)
@@ -52,12 +60,9 @@ class LsqQelWeight(Quantizer):
         x_hat = round_pass(x_hat)
         x_hat = x_hat * s_scale
 
-        if self.training:
-            # quan.quant_loss = quan.quant_loss.to(x.device)
-            # quan.quant_loss += ((x_hat - x).abs()).sum() / len(x.reshape(-1))
-            m = 2
-            quan.quant_loss = quan.quant_loss.to(x.device)
-            quan.quant_loss += ((x_hat - x)**m).sum()**(1/m) / len(x.reshape(-1))
+        # if self.training:
+        #     quan.quant_loss = quan.quant_loss.to(x.device)
+        #     quan.quant_loss += ((x_hat - x)**2).sum() * 1e-3
         return x_hat
 
 
@@ -86,7 +91,8 @@ class LsqQelAct(Quantizer):
     def init_activation(self, x, *args, **kwargs):
         self.s.data = x.detach().abs().amax() / self.thd_pos
         if self.per_channel:
-            self.s.data = self.s.data.detach().expand(x.shape[1]).clone().unsqueeze(1).unsqueeze(1).unsqueeze(0).cuda()
+            self.s.data = self.s.data.detach().expand(x.shape[1]).clone().unsqueeze(1).unsqueeze(1).unsqueeze(0)
+            self.s.data.to(self.device)
 
     def forward(self, x):
         if not self.inited and self.training:
@@ -101,10 +107,7 @@ class LsqQelAct(Quantizer):
         x_hat = round_pass(x_hat)
         x_hat = x_hat * s_scale
 
-        if self.training:
-            m = 2
-            quan.quant_loss = quan.quant_loss.to(x.device)
-            quan.quant_loss += ((x_hat - x)**m).sum()**(1/m) / len(x.reshape(-1))
-            # quan.quant_loss = quan.quant_loss.to(x.device)
-            # quan.quant_loss += ((x_hat - x).abs()).sum() / len(x.reshape(-1))
+        # if self.training:
+        #     quan.quant_loss = quan.quant_loss.to(x.device)
+        #     quan.quant_loss += ((x_hat - x)**2).sum() * 1e-3
         return x_hat
