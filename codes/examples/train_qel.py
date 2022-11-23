@@ -534,8 +534,8 @@ def main(argv):
     logger_train.info(args)
     logger_train.info(net)
 
-    if args.cuda and torch.cuda.device_count() > 1:
-        net = CustomDataParallel(net)
+    # if args.cuda and torch.cuda.device_count() > 1:
+    #     net = CustomDataParallel(net)
 
     optimizer, aux_optimizer, scale_optimizer = configure_optimizers(net, args)
     # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
