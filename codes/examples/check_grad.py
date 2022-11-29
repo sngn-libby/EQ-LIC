@@ -96,10 +96,10 @@ def main():
         scales_hat, means_hat = gaussian_params.chunk(2, 1)
         y_hat, _ = net.gaussian_conditional(y, scales_hat, means=means_hat)
 
-        a = net.g_s[0:6](y_hat)
+        a = net.g_s[0:4](y_hat)
         a.retain_grad()
 
-        layer = net.g_s[6]
+        layer = net.g_s[4]
         s = layer.quan_a_fn.s
         a_hat = layer.quan_a_fn(a)
         a_hat.retain_grad()
@@ -107,12 +107,12 @@ def main():
         x_hat = torch.nn.functional.conv_transpose2d(a_hat, w_hat, layer.bias, stride=layer.stride,
                                                      padding=layer.padding, output_padding=layer.output_padding,
                                                      dilation=layer.dilation)
-        # x_hat = net.g_s[5:7](x_hat)
+        x_hat = net.g_s[5:7](x_hat)
 
-        loss = MSELoss(x_hat, d)
-        loss.backward()
-        print('loss = ', loss)
-        # quan.quant_loss.backward()
+        # loss = MSELoss(x_hat, d)
+        # loss.backward()
+        # print('loss = ', loss)
+        quan.quant_loss.backward()
 
         print('내가 이론적으로 구한 s의 gradient 식이 맞는가?')
         grad_pred = a_hat.grad * a_hat/s - a_hat.grad * a/s * (a.grad != 0)
@@ -127,21 +127,21 @@ def main():
         print('clamp 구간 내부 gradient의 방향과 합')
         grad_inter = (a_hat.grad * a_hat/s - a_hat.grad * a/s) * (a <= s * 255)
         print('how many grad_inter > 0 :', (grad_inter > 0).sum())
-        print('mean of grad_inter > 0 :', (grad_inter * (grad_inter > 0)).sum() / (grad_inter > 0).sum())
+        print(f'mean of grad_inter > 0 : {(grad_inter * (grad_inter > 0)).sum() / (grad_inter > 0).sum():.3g}', )
         print('how many grad_inter < 0 :', (grad_inter < 0).sum())
-        print('mean of grad_inter < 0 :', (grad_inter * (grad_inter < 0)).sum() / (grad_inter < 0).sum())
-        print('sum of grad_inter = ', grad_inter.sum())
+        print(f'mean of grad_inter < 0 : {(grad_inter * (grad_inter < 0)).sum() / (grad_inter < 0).sum():.3g}')
+        print(f'sum of grad_inter = {grad_inter.sum():.3g}')
 
         print('clamp 구간 외부 gradient의 방향과 합')
         grad_outer = (a_hat.grad * a_hat / s) * (a > s * 255)
         print('how many grad_outer > 0 :', (grad_outer > 0).sum())
-        print('sum of grad_outer > 0 :', (grad_outer * (grad_outer > 0)).sum())
+        print(f'sum of grad_outer > 0 : {(grad_outer * (grad_outer > 0)).sum():.3g}')
         print('how many grad_outer < 0 :', (grad_outer < 0).sum())
-        print('sum of grad_outer < 0 :', (grad_outer * (grad_outer < 0)).sum())
-        print('sum of grad_outer = ', grad_outer.sum())
+        print(f'sum of grad_outer < 0 : {(grad_outer * (grad_outer < 0)).sum():.3g}')
+        print(f'sum of grad_outer = {grad_outer.sum():.3g}')
 
         print('grad_pred', grad_pred)
-        print('grad_sum', grad_inter.sum() + grad_outer.sum())
+        print(f'grad_sum {grad_inter.sum() + grad_outer.sum():.3g}')
 
         break
 

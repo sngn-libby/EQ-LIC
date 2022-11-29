@@ -60,9 +60,9 @@ class LsqQelWeight(Quantizer):
         x_hat = round_pass(x_hat)
         x_hat = x_hat * s_scale
 
-        # if self.training:
-        #     quan.quant_loss = quan.quant_loss.to(x.device)
-        #     quan.quant_loss += ((x_hat - x)**2).sum() * 1e-3
+        if self.training:
+            quan.quant_loss = quan.quant_loss.to(x.device)
+            quan.quant_loss += ((x_hat - x)**2).sum() * 1e-6
         return x_hat
 
 
@@ -107,7 +107,7 @@ class LsqQelAct(Quantizer):
         x_hat = round_pass(x_hat)
         x_hat = x_hat * s_scale
 
-        # if self.training:
-        #     quan.quant_loss = quan.quant_loss.to(x.device)
-        #     quan.quant_loss += ((x_hat - x)**2).sum() * 1e-3
+        if self.training:
+            quan.quant_loss = quan.quant_loss.to(x.device)
+            quan.quant_loss += ((x_hat - x)**2).sum() * 1e-6
         return x_hat
