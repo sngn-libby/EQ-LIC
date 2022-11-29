@@ -103,7 +103,7 @@ class LsqQelAct(Quantizer):
         s_scale = grad_scale(self.s, s_grad_scale)  # s와 같은데 grad scale 적용된 버전
 
         x_hat = x / s_scale
-        x_hat = t.clamp(x_hat, self.thd_neg, self.thd_pos)
+        x_hat = clamp_pass(x_hat, self.thd_neg, self.thd_pos)
         x_hat = round_pass(x_hat)
         x_hat = x_hat * s_scale
 
