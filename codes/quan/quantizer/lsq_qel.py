@@ -92,7 +92,6 @@ class LsqQelAct(Quantizer):
         self.s.data = x.detach().abs().amax() / self.thd_pos
         if self.per_channel:
             self.s.data = self.s.data.detach().expand(x.shape[1]).clone().unsqueeze(1).unsqueeze(1).unsqueeze(0)
-            self.s.data.to(self.device)
 
     def forward(self, x):
         if not self.inited and self.training:
