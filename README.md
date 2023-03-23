@@ -10,6 +10,8 @@ We add our quantization methods in 'quan' directory, and we add quantization con
 
 You can check our proposed quantizer at 'quan/quantizer/lsq_qel.py'.
 
+In `examples/check_grad.py` you can see gradient analysis result from the paper.
+
 ## Installation
 As mentioned in [CompressAI](https://github.com/InterDigitalInc/CompressAI), "A C++17 compiler, a recent version of pip (19.0+), and common python packages are also required (see setup.py for the full list)."
 ```bash
