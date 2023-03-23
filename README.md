@@ -4,7 +4,9 @@ unofficial Pytorch Implementation for "Integer quantized learned image compressi
 ## Acknowledgement
 The framework is based on [CompressAI](https://github.com/InterDigitalInc/CompressAI), part of the codes benefit from [InvCompress](https://github.com/xyq7/InvCompress). We add our model in compressai.models.actfunctions (not in compressai.models.ours, there are InvCompress models rather). We also modify compressai.zoo, compressai.layers to use the models. 
 
-We add our quantization methods in quan directory, and we add quantization configuration in config directory. We modify examples/train.py and examples/train_qel.py for quantization and using SQE loss.
+We add our quantization methods in 'quan' directory, and we add quantization configuration in 'config' directory. We modify examples/train.py and examples/train_qel.py for quantization and using SQE loss.
+
+You can check our proposed quantizer at 'quan/quantizer/lsq_qel.py'.
 
 ## Installation
 As mentioned in [CompressAI](https://github.com/InterDigitalInc/CompressAI), "A C++17 compiler, a recent version of pip (19.0+), and common python packages are also required (see setup.py for the full list)."
