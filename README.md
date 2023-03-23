@@ -10,7 +10,7 @@ We add our quantization methods in quan directory, and we add quantization confi
 As mentioned in [CompressAI](https://github.com/InterDigitalInc/CompressAI), "A C++17 compiler, a recent version of pip (19.0+), and common python packages are also required (see setup.py for the full list)."
 ```bash
 git clone https://github.com/Geunwoo-Jeon/eqat.git
-cd InvCompress/codes/
+cd eqat/codes/
 conda create -n eqat python=3.7 
 conda activate eqat
 pip install -U pip && pip install -e .
